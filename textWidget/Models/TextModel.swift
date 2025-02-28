@@ -89,6 +89,29 @@ struct TextModel: Codable, Equatable {
         self._borderColor = CodableColor(color: .clear)
     }
     
+    // 添加新的初始化方法
+    init(
+        text: String,
+        fontSize: CGFloat,
+        textColor: Color,
+        backgroundColor: Color,
+        alignment: TextAlignment,
+        hasShadow: Bool,
+        shadowRadius: CGFloat,
+        borderWidth: CGFloat,
+        borderColor: Color
+    ) {
+        self.text = text
+        self.fontSize = fontSize
+        self._textColor = CodableColor(color: textColor)
+        self._backgroundColor = CodableColor(color: backgroundColor)
+        self._alignment = CodableAlignment(alignment: alignment)
+        self.hasShadow = hasShadow
+        self.shadowRadius = shadowRadius
+        self.borderWidth = borderWidth
+        self._borderColor = CodableColor(color: borderColor)
+    }
+    
     // 实现Equatable协议
     static func == (lhs: TextModel, rhs: TextModel) -> Bool {
         return lhs.text == rhs.text &&

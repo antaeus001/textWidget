@@ -41,7 +41,6 @@
 		01DDA8BF2D70580800D92D29 /* TextWidgetExtensionExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = TextWidgetExtensionExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		01DDA8C12D70580800D92D29 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		01DDA8C32D70580800D92D29 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
-		01DDA9342D706C7600D92D29 /* TextWidgetExtensionExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = TextWidgetExtensionExtension.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -55,6 +54,7 @@
 		01DDA8DE2D705A4800D92D29 /* Exceptions for "textWidget" folder in "TextWidgetExtensionExtension" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				ConfigManager.swift,
 				Constants.swift,
 				Models/TextModel.swift,
 			);
@@ -104,7 +104,6 @@
 		01DDA8872D70515B00D92D29 = {
 			isa = PBXGroup;
 			children = (
-				01DDA9342D706C7600D92D29 /* TextWidgetExtensionExtension.entitlements */,
 				01DDA8922D70515B00D92D29 /* textWidget */,
 				01DDA8C52D70580800D92D29 /* TextWidgetExtension */,
 				01DDA8C02D70580800D92D29 /* Frameworks */,
@@ -444,7 +443,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
-				CODE_SIGN_ENTITLEMENTS = TextWidgetExtensionExtension.entitlements;
+				CODE_SIGN_ENTITLEMENTS = TextWidgetExtension/TextWidgetExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 6JTAL7RRL7;
@@ -472,7 +471,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
-				CODE_SIGN_ENTITLEMENTS = TextWidgetExtensionExtension.entitlements;
+				CODE_SIGN_ENTITLEMENTS = TextWidgetExtension/TextWidgetExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 6JTAL7RRL7;
