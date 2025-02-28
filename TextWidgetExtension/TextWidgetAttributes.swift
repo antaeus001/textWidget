@@ -1,5 +1,6 @@
 import ActivityKit
 import WidgetKit
+import SharedModels
 
 struct TextWidgetAttributes: ActivityAttributes {
     public struct ContentState: Codable, Hashable {
@@ -8,18 +9,28 @@ struct TextWidgetAttributes: ActivityAttributes {
         let currentIndex: Int
         
         // 实现 Hashable
-        func hash(into hasher: inout Hasher) {
+        public func hash(into hasher: inout Hasher) {
             hasher.combine(text)
             hasher.combine(currentIndex)
-            // 由于 TextModel 可能不是 Hashable，我们只使用它的 text 属性
             hasher.combine(model.text)
+            hasher.combine(model.fontSize)
         }
         
         // 实现 Equatable
-        static func == (lhs: ContentState, rhs: ContentState) -> Bool {
+        public static func == (lhs: ContentState, rhs: ContentState) -> Bool {
             return lhs.text == rhs.text &&
                    lhs.currentIndex == rhs.currentIndex &&
                    lhs.model == rhs.model
         }
+        
+        // 添加初始化器
+        public init(text: String, model: TextModel, currentIndex: Int) {
+            self.text = text
+            self.model = model
+            self.currentIndex = currentIndex
+        }
     }
+    
+    // ActivityAttributes 需要至少一个属性
+    let id: String
 } 

@@ -6,64 +6,110 @@
 //
 
 import SwiftUI
+import SharedModels
 
 struct ContentView: View {
     @StateObject private var viewModel = TextViewModel()
     @State private var isEditing = false
     @State private var newText: String = ""
+    @State private var showingDeleteAlert = false
+    @State private var deletingIndex: IndexSet?
     
     var body: some View {
         NavigationView {
             List {
-                // 预览区域
-                TextPreviewView(model: viewModel.model)
-                    .padding()
-                    .onTapGesture {
-                        isEditing = true
-                    }
+                // 文本样式预览
+                Section {
+                    TextPreviewView(model: viewModel.model)
+                        .padding()
+                        .onTapGesture {
+                            isEditing = true
+                        }
+                } header: {
+                    Text("样式预览")
+                } footer: {
+                    Text("点击预览区域编辑文本内容")
+                }
                 
-                // 样式控制面板
-                StyleControlPanel(model: $viewModel.model)
-                    .padding()
-                
-                // 轮播内容配置部分
-                Section("轮播设置") {
+                // 轮播内容管理
+                Section {
                     // 轮播间隔设置
-                    Stepper(value: $viewModel.currentConfig.rotationInterval, in: 1...60) {
-                        Text("轮播间隔: \(Int(viewModel.currentConfig.rotationInterval))秒")
+                    HStack {
+                        Text("轮播间隔")
+                        Spacer()
+                        Text("\(Int(viewModel.currentConfig.rotationInterval))秒")
                     }
+                    Slider(
+                        value: Binding(
+                            get: { viewModel.currentConfig.rotationInterval },
+                            set: { viewModel.updateRotationInterval($0) }
+                        ),
+                        in: 1...60,
+                        step: 1
+                    )
                     
                     // 添加新内容
                     HStack {
                         TextField("输入新的轮播内容", text: $newText)
-                        Button("添加") {
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                        Button(action: {
                             if !newText.isEmpty {
                                 viewModel.addContent(newText)
                                 newText = ""
                             }
+                        }) {
+                            Image(systemName: "plus.circle.fill")
+                                .foregroundColor(.blue)
                         }
+                        .disabled(newText.isEmpty)
                     }
                     
                     // 显示现有内容列表
-                    ForEach(viewModel.currentConfig.contents) { content in
-                        Text(content.text)
+                    if viewModel.currentConfig.contents.isEmpty {
+                        Text("暂无轮播内容")
+                            .foregroundColor(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                            .padding()
+                    } else {
+                        ForEach(viewModel.currentConfig.contents) { content in
+                            HStack {
+                                Text(content.text)
+                                Spacer()
+                                Text("\(viewModel.currentConfig.contents.firstIndex(where: { $0.id == content.id })! + 1)")
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        .onDelete { indexSet in
+                            deletingIndex = indexSet
+                            showingDeleteAlert = true
+                        }
                     }
-                    .onDelete { indexSet in
+                } header: {
+                    Text("轮播设置")
+                } footer: {
+                    Text("向左滑动删除轮播内容")
+                }
+                
+                // 样式控制面板
+                Section("样式设置") {
+                    StyleControlPanel(model: $viewModel.model)
+                }
+            }
+            .navigationTitle("文本小组件")
+            .sheet(isPresented: $isEditing) {
+                TextEditorView(text: $viewModel.model.text)
+            }
+            .alert("确认删除", isPresented: $showingDeleteAlert) {
+                Button("取消", role: .cancel) {}
+                Button("删除", role: .destructive) {
+                    if let indexSet = deletingIndex {
                         indexSet.forEach { index in
                             viewModel.removeContent(at: index)
                         }
                     }
                 }
-                
-                // 预览部分
-                Section("预览") {
-                    CarouselPreview(contents: viewModel.currentConfig.contents,
-                                  interval: viewModel.currentConfig.rotationInterval)
-                }
-            }
-            .navigationTitle("文本小组件配置")
-            .sheet(isPresented: $isEditing) {
-                TextEditorView(text: $viewModel.model.text)
+            } message: {
+                Text("确定要删除这条轮播内容吗？")
             }
         }
     }
@@ -138,7 +184,7 @@ struct StyleControlPanel: View {
 }
 
 // 轮播预览组件
-struct CarouselPreview: View {
+struct CarouselPreviewView: View {
     let contents: [ContentItem]
     let interval: TimeInterval
     @State private var currentIndex = 0
@@ -147,10 +193,23 @@ struct CarouselPreview: View {
         VStack {
             if contents.isEmpty {
                 Text("暂无轮播内容")
+                    .foregroundColor(.secondary)
             } else {
                 Text(contents[currentIndex].text)
                     .transition(.opacity)
                     .animation(.easeInOut, value: currentIndex)
+                
+                // 轮播指示器
+                if contents.count > 1 {
+                    HStack(spacing: 6) {
+                        ForEach(0..<contents.count, id: \.self) { index in
+                            Circle()
+                                .fill(index == currentIndex ? Color.blue : Color.gray.opacity(0.3))
+                                .frame(width: 6, height: 6)
+                        }
+                    }
+                    .padding(.top, 8)
+                }
             }
         }
         .frame(height: 100)
@@ -158,7 +217,9 @@ struct CarouselPreview: View {
             guard contents.count > 1 else { return }
             // 启动定时器进行预览
             let timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { _ in
-                currentIndex = (currentIndex + 1) % contents.count
+                withAnimation {
+                    currentIndex = (currentIndex + 1) % contents.count
+                }
             }
             RunLoop.current.add(timer, forMode: .common)
         }

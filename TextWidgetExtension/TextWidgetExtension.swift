@@ -7,7 +7,7 @@
 
 import WidgetKit
 import SwiftUI
-import textWidget
+import SharedModels
 
 struct Provider: TimelineProvider {
     typealias Entry = TextEntry
