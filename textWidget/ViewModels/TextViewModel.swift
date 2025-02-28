@@ -1,5 +1,5 @@
 import SwiftUI
-import SharedModels
+//import SharedModels
 import WidgetKit
 
 class TextViewModel: ObservableObject {

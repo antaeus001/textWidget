@@ -26,10 +26,10 @@ public struct CodableColor: Codable, Equatable {
 }
 
 // 创建一个可编码的对齐方式类型
-public enum CodableAlignment: String, Codable {
+private enum CodableAlignment: String, Codable {
     case leading, center, trailing
     
-    public init(alignment: TextAlignment) {
+    init(alignment: TextAlignment) {
         switch alignment {
         case .leading: self = .leading
         case .center: self = .center
@@ -37,7 +37,7 @@ public enum CodableAlignment: String, Codable {
         }
     }
     
-    public var alignment: TextAlignment {
+    var alignment: TextAlignment {
         switch self {
         case .leading: return .leading
         case .center: return .center
@@ -48,7 +48,9 @@ public enum CodableAlignment: String, Codable {
 
 public struct TextModel: Codable, Equatable {
     public var text: String
+    public var texts: [String] = []  // 存储轮播文本
     public var fontSize: CGFloat
+    public var rotationInterval: TimeInterval = 3.0  // 添加轮播间隔时间，默认3秒
     private var _textColor: CodableColor
     private var _backgroundColor: CodableColor
     private var _alignment: CodableAlignment
@@ -89,21 +91,57 @@ public struct TextModel: Codable, Equatable {
         self._borderColor = CodableColor(color: .clear)
     }
     
-    // 添加 Codable 实现
-    private enum CodingKeys: String, CodingKey {
-        case text, fontSize
-        case textColor = "_textColor"
-        case backgroundColor = "_backgroundColor"
-        case alignment = "_alignment"
-        case hasShadow, shadowRadius
-        case borderWidth
-        case borderColor = "_borderColor"
+    // 添加新的初始化方法
+    public init(
+        text: String,
+        fontSize: CGFloat,
+        textColor: Color,
+        backgroundColor: Color,
+        alignment: TextAlignment,
+        hasShadow: Bool,
+        shadowRadius: CGFloat,
+        borderWidth: CGFloat,
+        borderColor: Color
+    ) {
+        self.text = text
+        self.fontSize = fontSize
+        self._textColor = CodableColor(color: textColor)
+        self._backgroundColor = CodableColor(color: backgroundColor)
+        self._alignment = CodableAlignment(alignment: alignment)
+        self.hasShadow = hasShadow
+        self.shadowRadius = shadowRadius
+        self.borderWidth = borderWidth
+        self._borderColor = CodableColor(color: borderColor)
+    }
+    
+    // 实现Equatable协议
+    public static func == (lhs: TextModel, rhs: TextModel) -> Bool {
+        return lhs.text == rhs.text &&
+            lhs.texts == rhs.texts &&
+            lhs.fontSize == rhs.fontSize &&
+            lhs.rotationInterval == rhs.rotationInterval &&
+            lhs._textColor == rhs._textColor &&
+            lhs._backgroundColor == rhs._backgroundColor &&
+            lhs._alignment == rhs._alignment &&
+            lhs.hasShadow == rhs.hasShadow &&
+            lhs.shadowRadius == rhs.shadowRadius &&
+            lhs.borderWidth == rhs.borderWidth &&
+            lhs._borderColor == rhs._borderColor
+    }
+    
+    // 实现Codable
+    public enum CodingKeys: String, CodingKey {
+        case text, texts, fontSize, rotationInterval, textColor, backgroundColor
+        case alignment = "_alignment", hasShadow, shadowRadius
+        case borderWidth, borderColor
     }
     
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         text = try container.decode(String.self, forKey: .text)
+        texts = try container.decode([String].self, forKey: .texts)
         fontSize = try container.decode(CGFloat.self, forKey: .fontSize)
+        rotationInterval = try container.decode(TimeInterval.self, forKey: .rotationInterval)
         _textColor = try container.decode(CodableColor.self, forKey: .textColor)
         _backgroundColor = try container.decode(CodableColor.self, forKey: .backgroundColor)
         _alignment = try container.decode(CodableAlignment.self, forKey: .alignment)
@@ -116,7 +154,9 @@ public struct TextModel: Codable, Equatable {
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(text, forKey: .text)
+        try container.encode(texts, forKey: .texts)
         try container.encode(fontSize, forKey: .fontSize)
+        try container.encode(rotationInterval, forKey: .rotationInterval)
         try container.encode(_textColor, forKey: .textColor)
         try container.encode(_backgroundColor, forKey: .backgroundColor)
         try container.encode(_alignment, forKey: .alignment)

@@ -25,8 +25,34 @@ struct Provider: TimelineProvider {
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<TextEntry>) -> ()) {
         let model = loadSavedModel()
-        let entry = TextEntry(date: Date(), model: model)
-        let timeline = Timeline(entries: [entry], policy: .never)
+        
+        // 如果没有轮播文本，返回单个条目
+        if model.texts.isEmpty {
+            let entry = TextEntry(date: Date(), model: model)
+            let timeline = Timeline(entries: [entry], policy: .never)
+            completion(timeline)
+            return
+        }
+        
+        // 创建轮播条目
+        var entries: [TextEntry] = []
+        let currentDate = Date()
+        let endDate = currentDate.addingTimeInterval(5 * 60) // 5分钟的时间线
+        var entryDate = currentDate
+        var index = 0
+        
+        while entryDate < endDate {
+            var newModel = model
+            newModel.text = model.texts[index]
+            let entry = TextEntry(date: entryDate, model: newModel)
+            entries.append(entry)
+            
+            // 使用设置的轮播间隔
+            entryDate = entryDate.addingTimeInterval(model.rotationInterval)
+            index = (index + 1) % model.texts.count
+        }
+        
+        let timeline = Timeline(entries: entries, policy: .after(endDate))
         completion(timeline)
     }
     

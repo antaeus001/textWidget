@@ -6,165 +6,27 @@
 //
 
 import SwiftUI
-import SharedModels
 
 struct ContentView: View {
     @StateObject private var viewModel = TextViewModel()
     @State private var isEditing = false
-<<<<<<< HEAD
-    @State private var newText: String = ""
-    @State private var showingDeleteAlert = false
-    @State private var deletingIndex: IndexSet?
-=======
->>>>>>> ad20a9e (去掉轮播)
     
     var body: some View {
         NavigationView {
             List {
-                // 小组件预览区域
+                // 预览区域
                 Section {
-                    VStack {
-                        if viewModel.currentConfig.contents.isEmpty {
-                            // 静态预览
-                            TextPreviewView(model: viewModel.model)
-                        } else {
-                            // 轮播预览
-                            CarouselPreviewView(
-                                contents: viewModel.currentConfig.contents,
-                                interval: viewModel.currentConfig.rotationInterval,
-                                model: viewModel.model
-                            )
+                    TextPreviewView(
+                        model: viewModel.model,
+                        isEditing: $isEditing,
+                        onModelUpdate: { updatedModel in
+                            viewModel.model = updatedModel
                         }
-                    }
+                    )
                     .padding()
-                    .onTapGesture {
-                        isEditing = true
-                    }
                     .listRowInsets(EdgeInsets())
-                    .listRowBackground(Color.clear)
-                } header: {
-                    Text("小组件预览")
-                } footer: {
-                    if viewModel.currentConfig.contents.isEmpty {
-                        Text("点击预览区域编辑文本内容")
-                    } else {
-                        Text("已启用轮播模式")
-                    }
                 }
                 
-<<<<<<< HEAD
-                // 轮播内容管理
-                Section {
-                    // 轮播间隔设置
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            Text("轮播间隔")
-                            Spacer()
-                            Text("\(Int(viewModel.currentConfig.rotationInterval))秒")
-                                .foregroundColor(.secondary)
-                        }
-                        Slider(
-                            value: Binding(
-                                get: { viewModel.currentConfig.rotationInterval },
-                                set: { viewModel.updateRotationInterval($0) }
-                            ),
-                            in: 1...60,
-                            step: 1
-                        )
-                        .tint(.blue)
-                    }
-                    
-                    // 添加新内容
-                    VStack(spacing: 12) {
-                        HStack {
-                            TextField("输入新的轮播内容", text: $newText)
-                                .textFieldStyle(RoundedBorderTextFieldStyle())
-                            Button(action: {
-                                if !newText.isEmpty {
-                                    viewModel.addContent(newText)
-                                    newText = ""
-                                }
-                            }) {
-                                Image(systemName: "plus.circle.fill")
-                                    .font(.title2)
-                                    .foregroundColor(.blue)
-                            }
-                            .disabled(newText.isEmpty)
-                        }
-                        
-                        // 显示现有内容列表
-                        if !viewModel.currentConfig.contents.isEmpty {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("轮播内容列表")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                    .padding(.top, 8)
-                                
-                                ForEach(viewModel.currentConfig.contents) { content in
-                                    HStack {
-                                        Text(content.text)
-                                            .lineLimit(2)
-                                        Spacer()
-                                        Text("\(viewModel.currentConfig.contents.firstIndex(where: { $0.id == content.id })! + 1)")
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
-                                            .padding(.horizontal, 8)
-                                            .padding(.vertical, 4)
-                                            .background(Color.secondary.opacity(0.1))
-                                            .cornerRadius(4)
-                                    }
-                                    .padding(.vertical, 8)
-                                    .contentShape(Rectangle())
-                                }
-                                .onDelete { indexSet in
-                                    deletingIndex = indexSet
-                                    showingDeleteAlert = true
-                                }
-                            }
-                        } else {
-                            Text("暂无轮播内容")
-                                .foregroundColor(.secondary)
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(Color.secondary.opacity(0.1))
-                                .cornerRadius(8)
-                        }
-                    }
-                } header: {
-                    Text("轮播设置")
-                } footer: {
-                    Text("向左滑动删除轮播内容")
-                }
-                
-                // 样式控制面板
-                Section("样式设置") {
-                    StyleControlPanel(model: $viewModel.model)
-                }
-            }
-            .navigationTitle("文本小组件")
-            .sheet(isPresented: $isEditing) {
-                NavigationView {
-                    TextEditorView(text: $viewModel.model.text)
-                        .navigationTitle("编辑文本")
-                        .navigationBarItems(
-                            trailing: Button("完成") {
-                                isEditing = false
-                            }
-                        )
-                }
-            }
-            .alert("确认删除", isPresented: $showingDeleteAlert) {
-                Button("取消", role: .cancel) {}
-                Button("删除", role: .destructive) {
-                    if let indexSet = deletingIndex {
-                        indexSet.forEach { index in
-                            viewModel.removeContent(at: index)
-                        }
-                    }
-                }
-            } message: {
-                Text("确定要删除这条轮播内容吗？")
-=======
                 // 样式控制面板
                 StyleControlPanel(model: $viewModel.model)
                     .padding()
@@ -172,7 +34,6 @@ struct ContentView: View {
             .navigationTitle("文本小组件配置")
             .sheet(isPresented: $isEditing) {
                 TextEditorView(text: $viewModel.model.text)
->>>>>>> ad20a9e (去掉轮播)
             }
         }
     }
@@ -181,8 +42,64 @@ struct ContentView: View {
 // 预览视图组件
 struct TextPreviewView: View {
     let model: TextModel
+    @State private var currentPage = 0
+    @State private var newText: String = ""
+    @Binding var isEditing: Bool
+    let onModelUpdate: (TextModel) -> Void
+    @State private var isAddingText = false
+    @State private var editingText: String = ""
     
     var body: some View {
+        VStack {
+            TabView(selection: $currentPage) {
+                // 主文本视图
+                mainTextView
+                    .tag(0)
+                
+                // 轮播文本列表视图
+                ForEach(model.texts.indices, id: \.self) { index in
+                    carouselItemView(text: model.texts[index], index: index)
+                        .tag(index + 1)
+                }
+                
+                // 添加新轮播文本视图
+                addNewTextView
+                    .tag(model.texts.count + 1)
+            }
+            .tabViewStyle(.page)
+            .frame(height: 200)
+            
+            // 页面指示器
+            HStack {
+                ForEach(0...model.texts.count + 1, id: \.self) { index in
+                    Circle()
+                        .fill(currentPage == index ? Color.blue : Color.gray)
+                        .frame(width: 8, height: 8)
+                }
+            }
+            .padding(.top, 8)
+        }
+        .sheet(isPresented: $isAddingText) {
+            TextEditorView(text: Binding(
+                get: { editingText },
+                set: { newValue in
+                    editingText = newValue
+                    if !newValue.isEmpty {
+                        var updatedModel = model
+                        if currentPage == model.texts.count + 1 {
+                            updatedModel.texts.append(newValue)
+                            currentPage = model.texts.count
+                        } else if currentPage > 0 {
+                            updatedModel.texts[currentPage - 1] = newValue
+                        }
+                        onModelUpdate(updatedModel)
+                    }
+                }
+            ))
+        }
+    }
+    
+    private var mainTextView: some View {
         Text(model.text)
             .font(.system(size: model.fontSize))
             .foregroundColor(model.textColor)
@@ -196,6 +113,68 @@ struct TextPreviewView: View {
                 RoundedRectangle(cornerRadius: 8)
                     .stroke(model.borderColor, lineWidth: model.borderWidth)
             )
+            .onTapGesture {
+                isEditing = true
+            }
+    }
+    
+    private func carouselItemView(text: String, index: Int) -> some View {
+        Text(text)
+            .font(.system(size: model.fontSize))
+            .foregroundColor(model.textColor)
+            .multilineTextAlignment(model.alignment)
+            .padding()
+            .frame(maxWidth: .infinity, minHeight: 100)
+            .background(model.backgroundColor)
+            .cornerRadius(8)
+            .shadow(radius: model.hasShadow ? model.shadowRadius : 0)
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(model.borderColor, lineWidth: model.borderWidth)
+            )
+            .onTapGesture {
+                editingText = text
+                isAddingText = true
+            }
+            .contextMenu {
+                Button(role: .destructive) {
+                    var updatedModel = model
+                    updatedModel.texts.remove(at: index)
+                    onModelUpdate(updatedModel)
+                    if currentPage > model.texts.count {
+                        currentPage -= 1
+                    }
+                } label: {
+                    Label("删除", systemImage: "trash")
+                }
+            }
+    }
+    
+    private var addNewTextView: some View {
+        VStack {
+            if newText.isEmpty {
+                Text("点击添加轮播文本")
+                    .foregroundColor(.gray)
+            } else {
+                Text(newText)
+            }
+        }
+        .font(.system(size: model.fontSize))
+        .foregroundColor(model.textColor)
+        .multilineTextAlignment(model.alignment)
+        .padding()
+        .frame(maxWidth: .infinity, minHeight: 100)
+        .background(model.backgroundColor)
+        .cornerRadius(8)
+        .shadow(radius: model.hasShadow ? model.shadowRadius : 0)
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(model.borderColor, lineWidth: model.borderWidth)
+        )
+        .onTapGesture {
+            editingText = ""
+            isAddingText = true
+        }
     }
 }
 
@@ -242,63 +221,32 @@ struct StyleControlPanel: View {
             if model.borderWidth > 0 {
                 ColorPicker("边框颜色", selection: $model.borderColor)
             }
-        }
-    }
-}
-
-<<<<<<< HEAD
-// 轮播预览组件
-struct CarouselPreviewView: View {
-    let contents: [ContentItem]
-    let interval: TimeInterval
-    let model: TextModel
-    @State private var currentIndex = 0
-    
-    var body: some View {
-        VStack {
-            Text(contents[currentIndex].text)
-                .font(.system(size: model.fontSize))
-                .foregroundColor(model.textColor)
-                .multilineTextAlignment(model.alignment)
-                .padding()
-                .frame(maxWidth: .infinity, minHeight: 100)
-                .background(model.backgroundColor)
-                .cornerRadius(8)
-                .shadow(radius: model.hasShadow ? model.shadowRadius : 0)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .stroke(model.borderColor, lineWidth: model.borderWidth)
-                )
-                .transition(.opacity)
-                .animation(.easeInOut, value: currentIndex)
             
-            // 轮播指示器
-            if contents.count > 1 {
-                HStack(spacing: 6) {
-                    ForEach(0..<contents.count, id: \.self) { index in
-                        Circle()
-                            .fill(index == currentIndex ? Color.blue : Color.gray.opacity(0.3))
-                            .frame(width: 6, height: 6)
+            // 轮播设置
+            if !model.texts.isEmpty {
+                Section("轮播设置") {
+                    HStack {
+                        Text("轮播间隔")
+                        Slider(
+                            value: $model.rotationInterval,
+                            in: 1...60,
+                            step: 1
+                        ) {
+                            Text("轮播间隔")
+                        } minimumValueLabel: {
+                            Text("1秒")
+                        } maximumValueLabel: {
+                            Text("60秒")
+                        }
                     }
-                }
-                .padding(.top, 8)
-            }
-        }
-        .onAppear {
-            guard contents.count > 1 else { return }
-            // 启动定时器进行预览
-            let timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { _ in
-                withAnimation {
-                    currentIndex = (currentIndex + 1) % contents.count
+                    Text("\(Int(model.rotationInterval)) 秒")
+                        .foregroundColor(.gray)
                 }
             }
-            RunLoop.current.add(timer, forMode: .common)
         }
     }
 }
 
-=======
->>>>>>> ad20a9e (去掉轮播)
 #Preview {
     ContentView()
 }
