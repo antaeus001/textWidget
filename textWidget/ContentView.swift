@@ -18,70 +18,112 @@ struct ContentView: View {
     var body: some View {
         NavigationView {
             List {
-                // 文本样式预览
+                // 小组件预览区域
                 Section {
-                    TextPreviewView(model: viewModel.model)
-                        .padding()
-                        .onTapGesture {
-                            isEditing = true
+                    VStack {
+                        if viewModel.currentConfig.contents.isEmpty {
+                            // 静态预览
+                            TextPreviewView(model: viewModel.model)
+                        } else {
+                            // 轮播预览
+                            CarouselPreviewView(
+                                contents: viewModel.currentConfig.contents,
+                                interval: viewModel.currentConfig.rotationInterval,
+                                model: viewModel.model
+                            )
                         }
+                    }
+                    .padding()
+                    .onTapGesture {
+                        isEditing = true
+                    }
+                    .listRowInsets(EdgeInsets())
+                    .listRowBackground(Color.clear)
                 } header: {
-                    Text("样式预览")
+                    Text("小组件预览")
                 } footer: {
-                    Text("点击预览区域编辑文本内容")
+                    if viewModel.currentConfig.contents.isEmpty {
+                        Text("点击预览区域编辑文本内容")
+                    } else {
+                        Text("已启用轮播模式")
+                    }
                 }
                 
                 // 轮播内容管理
                 Section {
                     // 轮播间隔设置
-                    HStack {
-                        Text("轮播间隔")
-                        Spacer()
-                        Text("\(Int(viewModel.currentConfig.rotationInterval))秒")
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Text("轮播间隔")
+                            Spacer()
+                            Text("\(Int(viewModel.currentConfig.rotationInterval))秒")
+                                .foregroundColor(.secondary)
+                        }
+                        Slider(
+                            value: Binding(
+                                get: { viewModel.currentConfig.rotationInterval },
+                                set: { viewModel.updateRotationInterval($0) }
+                            ),
+                            in: 1...60,
+                            step: 1
+                        )
+                        .tint(.blue)
                     }
-                    Slider(
-                        value: Binding(
-                            get: { viewModel.currentConfig.rotationInterval },
-                            set: { viewModel.updateRotationInterval($0) }
-                        ),
-                        in: 1...60,
-                        step: 1
-                    )
                     
                     // 添加新内容
-                    HStack {
-                        TextField("输入新的轮播内容", text: $newText)
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
-                        Button(action: {
-                            if !newText.isEmpty {
-                                viewModel.addContent(newText)
-                                newText = ""
+                    VStack(spacing: 12) {
+                        HStack {
+                            TextField("输入新的轮播内容", text: $newText)
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                            Button(action: {
+                                if !newText.isEmpty {
+                                    viewModel.addContent(newText)
+                                    newText = ""
+                                }
+                            }) {
+                                Image(systemName: "plus.circle.fill")
+                                    .font(.title2)
+                                    .foregroundColor(.blue)
                             }
-                        }) {
-                            Image(systemName: "plus.circle.fill")
-                                .foregroundColor(.blue)
+                            .disabled(newText.isEmpty)
                         }
-                        .disabled(newText.isEmpty)
-                    }
-                    
-                    // 显示现有内容列表
-                    if viewModel.currentConfig.contents.isEmpty {
-                        Text("暂无轮播内容")
-                            .foregroundColor(.secondary)
-                            .frame(maxWidth: .infinity, alignment: .center)
-                            .padding()
-                    } else {
-                        ForEach(viewModel.currentConfig.contents) { content in
-                            HStack {
-                                Text(content.text)
-                                Spacer()
-                                Text("\(viewModel.currentConfig.contents.firstIndex(where: { $0.id == content.id })! + 1)")
+                        
+                        // 显示现有内容列表
+                        if !viewModel.currentConfig.contents.isEmpty {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("轮播内容列表")
+                                    .font(.caption)
                                     .foregroundColor(.secondary)
+                                    .padding(.top, 8)
+                                
+                                ForEach(viewModel.currentConfig.contents) { content in
+                                    HStack {
+                                        Text(content.text)
+                                            .lineLimit(2)
+                                        Spacer()
+                                        Text("\(viewModel.currentConfig.contents.firstIndex(where: { $0.id == content.id })! + 1)")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                            .padding(.horizontal, 8)
+                                            .padding(.vertical, 4)
+                                            .background(Color.secondary.opacity(0.1))
+                                            .cornerRadius(4)
+                                    }
+                                    .padding(.vertical, 8)
+                                    .contentShape(Rectangle())
+                                }
+                                .onDelete { indexSet in
+                                    deletingIndex = indexSet
+                                    showingDeleteAlert = true
+                                }
                             }
-                        }
-                        .onDelete { indexSet in
-                            deletingIndex = indexSet
-                            showingDeleteAlert = true
+                        } else {
+                            Text("暂无轮播内容")
+                                .foregroundColor(.secondary)
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Color.secondary.opacity(0.1))
+                                .cornerRadius(8)
                         }
                     }
                 } header: {
@@ -97,7 +139,15 @@ struct ContentView: View {
             }
             .navigationTitle("文本小组件")
             .sheet(isPresented: $isEditing) {
-                TextEditorView(text: $viewModel.model.text)
+                NavigationView {
+                    TextEditorView(text: $viewModel.model.text)
+                        .navigationTitle("编辑文本")
+                        .navigationBarItems(
+                            trailing: Button("完成") {
+                                isEditing = false
+                            }
+                        )
+                }
             }
             .alert("确认删除", isPresented: $showingDeleteAlert) {
                 Button("取消", role: .cancel) {}
@@ -187,32 +237,39 @@ struct StyleControlPanel: View {
 struct CarouselPreviewView: View {
     let contents: [ContentItem]
     let interval: TimeInterval
+    let model: TextModel
     @State private var currentIndex = 0
     
     var body: some View {
         VStack {
-            if contents.isEmpty {
-                Text("暂无轮播内容")
-                    .foregroundColor(.secondary)
-            } else {
-                Text(contents[currentIndex].text)
-                    .transition(.opacity)
-                    .animation(.easeInOut, value: currentIndex)
-                
-                // 轮播指示器
-                if contents.count > 1 {
-                    HStack(spacing: 6) {
-                        ForEach(0..<contents.count, id: \.self) { index in
-                            Circle()
-                                .fill(index == currentIndex ? Color.blue : Color.gray.opacity(0.3))
-                                .frame(width: 6, height: 6)
-                        }
+            Text(contents[currentIndex].text)
+                .font(.system(size: model.fontSize))
+                .foregroundColor(model.textColor)
+                .multilineTextAlignment(model.alignment)
+                .padding()
+                .frame(maxWidth: .infinity, minHeight: 100)
+                .background(model.backgroundColor)
+                .cornerRadius(8)
+                .shadow(radius: model.hasShadow ? model.shadowRadius : 0)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(model.borderColor, lineWidth: model.borderWidth)
+                )
+                .transition(.opacity)
+                .animation(.easeInOut, value: currentIndex)
+            
+            // 轮播指示器
+            if contents.count > 1 {
+                HStack(spacing: 6) {
+                    ForEach(0..<contents.count, id: \.self) { index in
+                        Circle()
+                            .fill(index == currentIndex ? Color.blue : Color.gray.opacity(0.3))
+                            .frame(width: 6, height: 6)
                     }
-                    .padding(.top, 8)
                 }
+                .padding(.top, 8)
             }
         }
-        .frame(height: 100)
         .onAppear {
             guard contents.count > 1 else { return }
             // 启动定时器进行预览
