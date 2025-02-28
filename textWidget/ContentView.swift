@@ -11,9 +11,12 @@ import SharedModels
 struct ContentView: View {
     @StateObject private var viewModel = TextViewModel()
     @State private var isEditing = false
+<<<<<<< HEAD
     @State private var newText: String = ""
     @State private var showingDeleteAlert = false
     @State private var deletingIndex: IndexSet?
+=======
+>>>>>>> ad20a9e (去掉轮播)
     
     var body: some View {
         NavigationView {
@@ -49,6 +52,7 @@ struct ContentView: View {
                     }
                 }
                 
+<<<<<<< HEAD
                 // 轮播内容管理
                 Section {
                     // 轮播间隔设置
@@ -160,6 +164,15 @@ struct ContentView: View {
                 }
             } message: {
                 Text("确定要删除这条轮播内容吗？")
+=======
+                // 样式控制面板
+                StyleControlPanel(model: $viewModel.model)
+                    .padding()
+            }
+            .navigationTitle("文本小组件配置")
+            .sheet(isPresented: $isEditing) {
+                TextEditorView(text: $viewModel.model.text)
+>>>>>>> ad20a9e (去掉轮播)
             }
         }
     }
@@ -233,6 +246,7 @@ struct StyleControlPanel: View {
     }
 }
 
+<<<<<<< HEAD
 // 轮播预览组件
 struct CarouselPreviewView: View {
     let contents: [ContentItem]
@@ -283,6 +297,8 @@ struct CarouselPreviewView: View {
     }
 }
 
+=======
+>>>>>>> ad20a9e (去掉轮播)
 #Preview {
     ContentView()
 }

@@ -7,7 +7,7 @@
 
 import WidgetKit
 import SwiftUI
-import SharedModels
+//import textWidget
 
 struct Provider: TimelineProvider {
     typealias Entry = TextEntry
@@ -24,61 +24,10 @@ struct Provider: TimelineProvider {
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<TextEntry>) -> ()) {
-        let currentConfig = ConfigManager.shared.currentConfig
-        let baseModel = loadSavedModel()
-        let currentDate = Date()
-        
-        // 如果没有配置或没有轮播内容，使用普通模式
-        guard let config = currentConfig, !config.contents.isEmpty else {
-            let entry = TextEntry(date: currentDate, model: baseModel)
-            let timeline = Timeline(entries: [entry], policy: .never)
-            completion(timeline)
-            return
-        }
-        
-        // 如果只有一条内容，不需要轮播
-        guard config.contents.count > 1 else {
-            var model = baseModel
-            model.text = config.contents[0].text
-            let entry = TextEntry(date: currentDate, model: model)
-            let timeline = Timeline(entries: [entry], policy: .never)
-            completion(timeline)
-            return
-        }
-        
-        // 创建多个轮播条目
-        var entries: [TextEntry] = []
-        
-        // 创建接下来5分钟的轮播条目
-        let endDate = currentDate.addingTimeInterval(5 * 60) // 5分钟
-        var entryDate = currentDate
-        var index = getCurrentIndex()
-        
-        while entryDate < endDate {
-            var model = baseModel
-            model.text = config.contents[index].text
-            let entry = TextEntry(date: entryDate, model: model)
-            entries.append(entry)
-            
-            // 更新下一个条目的时间和索引
-            entryDate = entryDate.addingTimeInterval(config.rotationInterval)
-            index = (index + 1) % config.contents.count
-        }
-        
-        // 保存最后的索引
-        saveCurrentIndex(index)
-        
-        // 创建时间线，5分钟后重新加载
-        let timeline = Timeline(entries: entries, policy: .after(endDate))
+        let model = loadSavedModel()
+        let entry = TextEntry(date: Date(), model: model)
+        let timeline = Timeline(entries: [entry], policy: .never)
         completion(timeline)
-    }
-    
-    private func getCurrentIndex() -> Int {
-        return userDefaults?.integer(forKey: "currentRotationIndex") ?? 0
-    }
-    
-    private func saveCurrentIndex(_ index: Int) {
-        userDefaults?.set(index, forKey: "currentRotationIndex")
     }
     
     private func loadSavedModel() -> TextModel {
@@ -96,7 +45,7 @@ struct TextEntry: TimelineEntry {
     let model: TextModel
 }
 
-struct TextWidgetEntryView : View {
+struct TextWidgetEntryView: View {
     var entry: Provider.Entry
     
     var body: some View {
