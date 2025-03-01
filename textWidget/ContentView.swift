@@ -255,9 +255,93 @@ struct TextPreviewView: View {
     }
 }
 
+struct AIGenerateView: View {
+    @Environment(\.dismiss) var dismiss
+    @State var numberOfTexts: Int
+    @State var prompt: String = ""
+    let onGenerate: ([String]) -> Void
+    
+    @State private var isGenerating = false
+    @State private var errorMessage: String?
+    
+    var body: some View {
+        NavigationView {
+            VStack(alignment: .leading, spacing: 16) {
+                // 生成数量控制
+                Stepper("生成数量: \(numberOfTexts)", value: $numberOfTexts, in: 1...10)
+                    .padding(.horizontal)
+                
+                // Prompt 输入区域
+                VStack(alignment: .leading) {
+                    Text("提示词")
+                        .font(.headline)
+                    TextEditor(text: $prompt)
+                        .frame(height: 100)
+                        .padding(8)
+                        .background(Color.gray.opacity(0.1))
+                        .cornerRadius(8)
+                    
+                    Text("提示：可以输入具体要求，比如\"生成相关的励志短语\"、\"生成不同场景的问候语\"等。")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                }
+                .padding(.horizontal)
+                
+                if let error = errorMessage {
+                    Text(error)
+                        .foregroundColor(.red)
+                        .padding(.horizontal)
+                }
+                
+                Spacer()
+            }
+            .navigationTitle("AI生成轮播内容")
+            .navigationBarItems(
+                leading: Button("取消") {
+                    dismiss()
+                },
+                trailing: Button("生成") {
+                    Task {
+                        await generateTexts()
+                    }
+                }
+                .disabled(prompt.isEmpty || isGenerating)
+            )
+            .overlay {
+                if isGenerating {
+                    ProgressView("生成中...")
+                        .padding()
+                        .background(Color.secondary.opacity(0.1))
+                        .cornerRadius(8)
+                }
+            }
+        }
+    }
+    
+    private func generateTexts() async {
+        isGenerating = true
+        errorMessage = nil
+        
+        do {
+            let texts = try await AIService.shared.generateTexts(
+                prompt: prompt,
+                count: numberOfTexts
+            )
+            onGenerate(texts)
+            dismiss()
+        } catch {
+            errorMessage = "生成失败：\(error.localizedDescription)"
+        }
+        
+        isGenerating = false
+    }
+}
+
 // 样式控制面板组件
 struct StyleControlPanel: View {
     @Binding var model: TextModel
+    @State private var isGeneratingTexts = false
+    @State private var numberOfTexts = 3
     
     var body: some View {
         VStack(spacing: 16) {
@@ -291,8 +375,18 @@ struct StyleControlPanel: View {
             }
             
             // 轮播设置
-            if !model.texts.isEmpty {
-                Section("轮播设置") {
+            Section("轮播设置") {
+                // 添加 AI 生成按钮
+                Button(action: {
+                    isGeneratingTexts = true
+                }) {
+                    Label("AI生成轮播内容", systemImage: "wand.and.stars")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .tint(.blue)
+                
+                if !model.texts.isEmpty {
                     HStack {
                         Text("轮播间隔")
                         Slider(
@@ -311,6 +405,22 @@ struct StyleControlPanel: View {
                         .foregroundColor(.gray)
                 }
             }
+        }
+        .sheet(isPresented: $isGeneratingTexts) {
+            AIGenerateView(
+                numberOfTexts: numberOfTexts,
+                prompt: "",
+                onGenerate: { generatedTexts in
+                    var updatedModel = model
+                    // 使用第一条生成的文本作为主文本
+                    if let firstText = generatedTexts.first {
+                        updatedModel.text = firstText
+                        // 剩余的文本作为轮播内容
+                        updatedModel.texts = Array(generatedTexts.dropFirst())
+                    }
+                    model = updatedModel
+                }
+            )
         }
     }
 }
