@@ -30,11 +30,7 @@ enum PreviewSize: String, CaseIterable {
     }
     
     var contentHeight: CGFloat {
-        switch self {
-        case .small: return 135  // 减去边距和指示器的高度
-        case .medium: return 135 // 与小尺寸相同的高度
-        case .large: return 325
-        }
+        height  // 移除减法，使用完整高度
     }
 }
 
@@ -85,6 +81,8 @@ struct TextPreviewView: View {
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     @State private var lastUpdateTime = Date()
     
+    private let containerCornerRadius: CGFloat = 20  // 添加统一的圆角常量
+    
     var body: some View {
         VStack(spacing: 8) {
             // 尺寸选择器
@@ -115,7 +113,7 @@ struct TextPreviewView: View {
             .tabViewStyle(.page(indexDisplayMode: .never))
             .frame(width: selectedSize.width, height: selectedSize.height)
             .background(Color.gray.opacity(0.1))
-            .cornerRadius(20)
+            .cornerRadius(containerCornerRadius)
             
             // 页面指示器移到外面
             if model.texts.count > 0 {
@@ -171,16 +169,17 @@ struct TextPreviewView: View {
             .font(.system(size: model.fontSize))
             .foregroundColor(model.textColor)
             .multilineTextAlignment(model.alignment)
-            .padding()
+            .padding(.horizontal, 16)  // 添加水平内边距
+            .padding(.vertical, 12)    // 添加垂直内边距
             .frame(
-                maxWidth: .infinity,
-                minHeight: selectedSize.contentHeight,
+                maxWidth: selectedSize.width,
+                maxHeight: selectedSize.height,
                 alignment: model.alignment == .center ? .center : (model.alignment == .leading ? .leading : .trailing)
             )
             .background(model.backgroundColor)
-            .cornerRadius(8)
+            .cornerRadius(containerCornerRadius)
             .overlay(
-                RoundedRectangle(cornerRadius: 8)
+                RoundedRectangle(cornerRadius: containerCornerRadius)
                     .stroke(model.borderColor, lineWidth: model.borderWidth)
             )
             .onTapGesture {
@@ -193,16 +192,17 @@ struct TextPreviewView: View {
             .font(.system(size: model.fontSize))
             .foregroundColor(model.textColor)
             .multilineTextAlignment(model.alignment)
-            .padding()
+            .padding(.horizontal, 16)  // 添加水平内边距
+            .padding(.vertical, 12)    // 添加垂直内边距
             .frame(
-                maxWidth: .infinity,
-                minHeight: selectedSize.contentHeight,
+                maxWidth: selectedSize.width,
+                maxHeight: selectedSize.height,
                 alignment: model.alignment == .center ? .center : (model.alignment == .leading ? .leading : .trailing)
             )
             .background(model.backgroundColor)
-            .cornerRadius(8)
+            .cornerRadius(containerCornerRadius)
             .overlay(
-                RoundedRectangle(cornerRadius: 8)
+                RoundedRectangle(cornerRadius: containerCornerRadius)
                     .stroke(model.borderColor, lineWidth: model.borderWidth)
             )
             .onTapGesture {
@@ -235,16 +235,17 @@ struct TextPreviewView: View {
         .font(.system(size: model.fontSize))
         .foregroundColor(model.textColor)
         .multilineTextAlignment(model.alignment)
-        .padding()
+        .padding(.horizontal, 16)  // 添加水平内边距
+        .padding(.vertical, 12)    // 添加垂直内边距
         .frame(
-            maxWidth: .infinity,
-            minHeight: selectedSize.contentHeight,
+            maxWidth: selectedSize.width,
+            maxHeight: selectedSize.height,
             alignment: model.alignment == .center ? .center : (model.alignment == .leading ? .leading : .trailing)
         )
         .background(model.backgroundColor)
-        .cornerRadius(8)
+        .cornerRadius(containerCornerRadius)
         .overlay(
-            RoundedRectangle(cornerRadius: 8)
+            RoundedRectangle(cornerRadius: containerCornerRadius)
                 .stroke(model.borderColor, lineWidth: model.borderWidth)
         )
         .onTapGesture {
