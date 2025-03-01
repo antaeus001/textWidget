@@ -342,6 +342,7 @@ struct StyleControlPanel: View {
     @Binding var model: TextModel
     @State private var isGeneratingTexts = false
     @State private var numberOfTexts = 3
+    @State private var showingPurchaseAlert = false
     
     var body: some View {
         VStack(spacing: 16) {
@@ -376,12 +377,23 @@ struct StyleControlPanel: View {
             
             // 轮播设置
             Section("轮播设置") {
-                // 添加 AI 生成按钮
+                // AI 生成按钮
                 Button(action: {
-                    isGeneratingTexts = true
+                    if UserSettings.shared.needsPurchase {
+                        showingPurchaseAlert = true
+                    } else {
+                        isGeneratingTexts = true
+                    }
                 }) {
-                    Label("AI生成轮播内容", systemImage: "wand.and.stars")
-                        .frame(maxWidth: .infinity)
+                    VStack {
+                        Label("AI生成轮播内容", systemImage: "wand.and.stars")
+                            .frame(maxWidth: .infinity)
+                        if !UserSettings.shared.needsPurchase {
+                            Text("剩余免费次数：\(UserSettings.shared.remainingFreeGenerates)")
+                                .font(.caption)
+                                .foregroundColor(.gray)
+                        }
+                    }
                 }
                 .buttonStyle(.bordered)
                 .tint(.blue)
@@ -412,15 +424,22 @@ struct StyleControlPanel: View {
                 prompt: "",
                 onGenerate: { generatedTexts in
                     var updatedModel = model
-                    // 使用第一条生成的文本作为主文本
                     if let firstText = generatedTexts.first {
                         updatedModel.text = firstText
-                        // 剩余的文本作为轮播内容
                         updatedModel.texts = Array(generatedTexts.dropFirst())
                     }
                     model = updatedModel
+                    UserSettings.shared.useOneGenerate()
                 }
             )
+        }
+        .alert("需要解锁会员", isPresented: $showingPurchaseAlert) {
+            Button("购买会员") {
+                // TODO: 添加购买逻辑
+            }
+            Button("取消", role: .cancel) { }
+        } message: {
+            Text("您已使用完所有免费次数，解锁会员后可无限使用AI生成功能。")
         }
     }
 }
