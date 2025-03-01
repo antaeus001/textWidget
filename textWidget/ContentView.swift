@@ -105,10 +105,9 @@ struct TextPreviewView: View {
             .foregroundColor(model.textColor)
             .multilineTextAlignment(model.alignment)
             .padding()
-            .frame(maxWidth: .infinity, minHeight: 100)
+            .frame(maxWidth: .infinity, minHeight: 100, alignment: model.alignment == .center ? .center : (model.alignment == .leading ? .leading : .trailing))
             .background(model.backgroundColor)
             .cornerRadius(8)
-            .shadow(radius: model.hasShadow ? model.shadowRadius : 0)
             .overlay(
                 RoundedRectangle(cornerRadius: 8)
                     .stroke(model.borderColor, lineWidth: model.borderWidth)
@@ -124,10 +123,9 @@ struct TextPreviewView: View {
             .foregroundColor(model.textColor)
             .multilineTextAlignment(model.alignment)
             .padding()
-            .frame(maxWidth: .infinity, minHeight: 100)
+            .frame(maxWidth: .infinity, minHeight: 100, alignment: model.alignment == .center ? .center : (model.alignment == .leading ? .leading : .trailing))
             .background(model.backgroundColor)
             .cornerRadius(8)
-            .shadow(radius: model.hasShadow ? model.shadowRadius : 0)
             .overlay(
                 RoundedRectangle(cornerRadius: 8)
                     .stroke(model.borderColor, lineWidth: model.borderWidth)
@@ -163,10 +161,9 @@ struct TextPreviewView: View {
         .foregroundColor(model.textColor)
         .multilineTextAlignment(model.alignment)
         .padding()
-        .frame(maxWidth: .infinity, minHeight: 100)
+        .frame(maxWidth: .infinity, minHeight: 100, alignment: model.alignment == .center ? .center : (model.alignment == .leading ? .leading : .trailing))
         .background(model.backgroundColor)
         .cornerRadius(8)
-        .shadow(radius: model.hasShadow ? model.shadowRadius : 0)
         .overlay(
             RoundedRectangle(cornerRadius: 8)
                 .stroke(model.borderColor, lineWidth: model.borderWidth)
@@ -203,15 +200,6 @@ struct StyleControlPanel: View {
                 Text("右对齐").tag(TextAlignment.trailing)
             }
             .pickerStyle(SegmentedPickerStyle())
-            
-            // 阴影控制
-            Toggle("启用阴影", isOn: $model.hasShadow)
-            if model.hasShadow {
-                HStack {
-                    Text("阴影大小")
-                    Slider(value: $model.shadowRadius, in: 0...10)
-                }
-            }
             
             // 边框控制
             HStack {

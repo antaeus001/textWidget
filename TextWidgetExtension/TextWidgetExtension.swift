@@ -80,7 +80,7 @@ struct TextWidgetEntryView: View {
                 .font(.system(size: entry.model.fontSize))
                 .foregroundColor(entry.model.textColor)
                 .multilineTextAlignment(entry.model.alignment)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: entry.model.alignment == .center ? .center : (entry.model.alignment == .leading ? .leading : .trailing))
                 .transition(.opacity)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -90,7 +90,6 @@ struct TextWidgetEntryView: View {
                 ZStack {
                     // 背景
                     entry.model.backgroundColor
-                        .shadow(radius: entry.model.hasShadow ? entry.model.shadowRadius : 0)
                     
                     // 边框
                     if entry.model.borderWidth > 0 {

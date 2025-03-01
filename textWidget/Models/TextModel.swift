@@ -54,8 +54,6 @@ public struct TextModel: Codable, Equatable {
     private var _textColor: CodableColor
     private var _backgroundColor: CodableColor
     private var _alignment: CodableAlignment
-    public var hasShadow: Bool
-    public var shadowRadius: CGFloat
     public var borderWidth: CGFloat
     private var _borderColor: CodableColor
     
@@ -85,8 +83,6 @@ public struct TextModel: Codable, Equatable {
         self._textColor = CodableColor(color: .black)
         self._backgroundColor = CodableColor(color: .white)
         self._alignment = .center
-        self.hasShadow = false
-        self.shadowRadius = 0
         self.borderWidth = 0
         self._borderColor = CodableColor(color: .clear)
     }
@@ -98,8 +94,6 @@ public struct TextModel: Codable, Equatable {
         textColor: Color,
         backgroundColor: Color,
         alignment: TextAlignment,
-        hasShadow: Bool,
-        shadowRadius: CGFloat,
         borderWidth: CGFloat,
         borderColor: Color
     ) {
@@ -108,8 +102,6 @@ public struct TextModel: Codable, Equatable {
         self._textColor = CodableColor(color: textColor)
         self._backgroundColor = CodableColor(color: backgroundColor)
         self._alignment = CodableAlignment(alignment: alignment)
-        self.hasShadow = hasShadow
-        self.shadowRadius = shadowRadius
         self.borderWidth = borderWidth
         self._borderColor = CodableColor(color: borderColor)
     }
@@ -123,8 +115,6 @@ public struct TextModel: Codable, Equatable {
             lhs._textColor == rhs._textColor &&
             lhs._backgroundColor == rhs._backgroundColor &&
             lhs._alignment == rhs._alignment &&
-            lhs.hasShadow == rhs.hasShadow &&
-            lhs.shadowRadius == rhs.shadowRadius &&
             lhs.borderWidth == rhs.borderWidth &&
             lhs._borderColor == rhs._borderColor
     }
@@ -132,7 +122,7 @@ public struct TextModel: Codable, Equatable {
     // 实现Codable
     public enum CodingKeys: String, CodingKey {
         case text, texts, fontSize, rotationInterval, textColor, backgroundColor
-        case alignment = "_alignment", hasShadow, shadowRadius
+        case alignment = "_alignment"
         case borderWidth, borderColor
     }
     
@@ -145,8 +135,6 @@ public struct TextModel: Codable, Equatable {
         _textColor = try container.decode(CodableColor.self, forKey: .textColor)
         _backgroundColor = try container.decode(CodableColor.self, forKey: .backgroundColor)
         _alignment = try container.decode(CodableAlignment.self, forKey: .alignment)
-        hasShadow = try container.decode(Bool.self, forKey: .hasShadow)
-        shadowRadius = try container.decode(CGFloat.self, forKey: .shadowRadius)
         borderWidth = try container.decode(CGFloat.self, forKey: .borderWidth)
         _borderColor = try container.decode(CodableColor.self, forKey: .borderColor)
     }
@@ -160,8 +148,6 @@ public struct TextModel: Codable, Equatable {
         try container.encode(_textColor, forKey: .textColor)
         try container.encode(_backgroundColor, forKey: .backgroundColor)
         try container.encode(_alignment, forKey: .alignment)
-        try container.encode(hasShadow, forKey: .hasShadow)
-        try container.encode(shadowRadius, forKey: .shadowRadius)
         try container.encode(borderWidth, forKey: .borderWidth)
         try container.encode(_borderColor, forKey: .borderColor)
     }
