@@ -343,6 +343,7 @@ struct StyleControlPanel: View {
     @State private var isGeneratingTexts = false
     @State private var numberOfTexts = 3
     @State private var showingPurchaseAlert = false
+    @StateObject private var storeManager = StoreManager.shared
     
     var body: some View {
         VStack(spacing: 16) {
@@ -388,7 +389,7 @@ struct StyleControlPanel: View {
                     VStack {
                         Label("AI生成轮播内容", systemImage: "wand.and.stars")
                             .frame(maxWidth: .infinity)
-                        if !UserSettings.shared.needsPurchase {
+                        if !UserSettings.shared.isPremium {
                             Text("剩余免费次数：\(UserSettings.shared.remainingFreeGenerates)")
                                 .font(.caption)
                                 .foregroundColor(.gray)
@@ -434,12 +435,33 @@ struct StyleControlPanel: View {
             )
         }
         .alert("需要解锁会员", isPresented: $showingPurchaseAlert) {
-            Button("购买会员") {
-                // TODO: 添加购买逻辑
+            if let product = storeManager.products.first {
+                Button(product.displayPrice) {
+                    Task {
+                        if await storeManager.purchase() {
+                            isGeneratingTexts = true
+                        }
+                    }
+                }
+            }
+            Button("恢复购买") {
+                Task {
+                    await storeManager.restorePurchases()
+                }
             }
             Button("取消", role: .cancel) { }
         } message: {
             Text("您已使用完所有免费次数，解锁会员后可无限使用AI生成功能。")
+        }
+        .alert("购买失败", isPresented: .init(
+            get: { storeManager.purchaseError != nil },
+            set: { if !$0 { storeManager.purchaseError = nil } }
+        )) {
+            Button("确定", role: .cancel) { }
+        } message: {
+            if let error = storeManager.purchaseError {
+                Text(error)
+            }
         }
     }
 }
