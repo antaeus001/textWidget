@@ -49,6 +49,10 @@ struct TextPreviewView: View {
     @State private var isAddingText = false
     @State private var editingText: String = ""
     
+    // 添加定时器
+    let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+    @State private var lastUpdateTime = Date()
+    
     var body: some View {
         VStack {
             TabView(selection: $currentPage) {
@@ -68,6 +72,23 @@ struct TextPreviewView: View {
             }
             .tabViewStyle(.page)
             .frame(height: 200)
+            .onReceive(timer) { currentTime in
+                // 只在有轮播文本时进行轮播
+                if !model.texts.isEmpty {
+                    let timeDiff = currentTime.timeIntervalSince(lastUpdateTime)
+                    if timeDiff >= model.rotationInterval {
+                        withAnimation {
+                            // 计算下一页，考虑主文本页和添加按钮页
+                            if currentPage >= model.texts.count {
+                                currentPage = 0  // 回到主文本
+                            } else {
+                                currentPage += 1
+                            }
+                        }
+                        lastUpdateTime = currentTime
+                    }
+                }
+            }
             
             // 页面指示器
             HStack {
