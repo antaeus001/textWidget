@@ -81,7 +81,6 @@ struct TextWidgetEntryView: View {
                 .foregroundColor(entry.model.textColor)
                 .multilineTextAlignment(entry.model.alignment)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .shadow(radius: entry.model.hasShadow ? entry.model.shadowRadius : 0)
                 .transition(.opacity)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -91,6 +90,7 @@ struct TextWidgetEntryView: View {
                 ZStack {
                     // 背景
                     entry.model.backgroundColor
+                        .shadow(radius: entry.model.hasShadow ? entry.model.shadowRadius : 0)
                     
                     // 边框
                     if entry.model.borderWidth > 0 {
