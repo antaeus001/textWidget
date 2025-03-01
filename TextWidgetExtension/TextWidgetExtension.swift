@@ -86,12 +86,23 @@ struct TextWidgetEntryView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(entry.model.backgroundColor)
-        .overlay(
-            RoundedRectangle(cornerRadius: entry.model.borderWidth > 0 ? 8 : 0)
-                .stroke(entry.model.borderColor, lineWidth: entry.model.borderWidth)
-        )
         .containerBackground(for: .widget) {
-            entry.model.backgroundColor
+            GeometryReader { geometry in
+                ZStack {
+                    // 背景
+                    entry.model.backgroundColor
+                    
+                    // 边框
+                    if entry.model.borderWidth > 0 {
+                        RoundedRectangle(cornerRadius: 20)
+                            .stroke(entry.model.borderColor, lineWidth: entry.model.borderWidth)
+                            .frame(
+                                width: geometry.size.width,
+                                height: geometry.size.height
+                            )
+                    }
+                }
+            }
         }
         .animation(.easeInOut, value: entry.model.text)
     }
