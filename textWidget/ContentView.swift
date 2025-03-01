@@ -434,24 +434,103 @@ struct StyleControlPanel: View {
                 }
             )
         }
-        .alert("需要解锁会员", isPresented: $showingPurchaseAlert) {
-            if let product = storeManager.products.first {
-                Button(product.displayPrice) {
-                    Task {
-                        if await storeManager.purchase() {
-                            isGeneratingTexts = true
+        .sheet(isPresented: $showingPurchaseAlert) {
+            PurchaseView {
+                isGeneratingTexts = true
+            }
+        }
+    }
+}
+
+struct PurchaseView: View {
+    @Environment(\.dismiss) var dismiss
+    @StateObject private var storeManager = StoreManager.shared
+    let onPurchaseSuccess: () -> Void
+    
+    var body: some View {
+        NavigationView {
+            ScrollView {
+                VStack(spacing: 20) {
+                    // 标题区域
+                    VStack(spacing: 8) {
+                        Image(systemName: "wand.and.stars.inverse")
+                            .font(.system(size: 60))
+                            .foregroundColor(.blue)
+                        
+                        Text("解锁全部功能")
+                            .font(.title)
+                            .bold()
+                        
+                        Text("选择适合您的会员方案")
+                            .foregroundColor(.gray)
+                    }
+                    .padding(.vertical, 30)
+                    
+                    // 会员方案选择
+                    VStack(spacing: 16) {
+                        // 月度会员
+                        if let monthlyProduct = storeManager.product(for: .monthly) {
+                            membershipCard(
+                                type: .monthly,
+                                price: monthlyProduct.displayPrice,
+                                action: {
+                                    Task {
+                                        if await storeManager.purchase(monthlyProduct) {
+                                            onPurchaseSuccess()
+                                            dismiss()
+                                        }
+                                    }
+                                }
+                            )
+                        }
+                        
+                        // 永久会员
+                        if let lifetimeProduct = storeManager.product(for: .lifetime) {
+                            membershipCard(
+                                type: .lifetime,
+                                price: lifetimeProduct.displayPrice,
+                                action: {
+                                    Task {
+                                        if await storeManager.purchase(lifetimeProduct) {
+                                            onPurchaseSuccess()
+                                            dismiss()
+                                        }
+                                    }
+                                }
+                            )
                         }
                     }
+                    .padding(.horizontal)
+                    
+                    // 恢复购买按钮
+                    Button("恢复购买") {
+                        Task {
+                            await storeManager.restorePurchases()
+                            if UserSettings.shared.isPremium {
+                                dismiss()
+                            }
+                        }
+                    }
+                    .foregroundColor(.blue)
+                    .padding(.top)
+                    
+                    // 隐私和条款链接
+                    HStack {
+                        Link("隐私政策", destination: URL(string: "https://your-privacy-policy-url")!)
+                        Text("·")
+                        Link("使用条款", destination: URL(string: "https://your-terms-url")!)
+                    }
+                    .font(.footnote)
+                    .foregroundColor(.gray)
+                    .padding(.top, 30)
                 }
+                .padding()
             }
-            Button("恢复购买") {
-                Task {
-                    await storeManager.restorePurchases()
+            .navigationBarItems(
+                trailing: Button("关闭") {
+                    dismiss()
                 }
-            }
-            Button("取消", role: .cancel) { }
-        } message: {
-            Text("您已使用完所有免费次数，解锁会员后可无限使用AI生成功能。")
+            )
         }
         .alert("购买失败", isPresented: .init(
             get: { storeManager.purchaseError != nil },
@@ -463,6 +542,40 @@ struct StyleControlPanel: View {
                 Text(error)
             }
         }
+    }
+    
+    private func membershipCard(type: StoreManager.MembershipType, price: String, action: @escaping () -> Void) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text(type.title)
+                    .font(.title2)
+                    .bold()
+                Spacer()
+                Text(price)
+                    .font(.title3)
+                    .bold()
+            }
+            
+            Text(type.description)
+                .foregroundColor(.gray)
+            
+            ForEach(type.features, id: \.self) { feature in
+                Text(feature)
+                    .foregroundColor(.secondary)
+            }
+            
+            Button(action: action) {
+                Text("选择")
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.blue)
+                    .foregroundColor(.white)
+                    .cornerRadius(10)
+            }
+        }
+        .padding()
+        .background(Color.gray.opacity(0.1))
+        .cornerRadius(16)
     }
 }
 

@@ -9,7 +9,45 @@ class StoreManager: ObservableObject {
     @Published private(set) var purchasingProduct: Product?
     @Published var purchaseError: String?
     
-    private let productIds = ["com.yourapp.premium"]
+    // 定义会员商品 ID
+    private let productIds = [
+        "com.textwidget.premium.monthly",   // 月度会员
+        "com.textwidget.premium.lifetime"   // 永久会员
+    ]
+    
+    // 会员类型
+    enum MembershipType: String {
+        case monthly = "com.textwidget.premium.monthly"
+        case lifetime = "com.textwidget.premium.lifetime"
+        
+        var title: String {
+            switch self {
+            case .monthly: return "月度会员"
+            case .lifetime: return "永久会员"
+            }
+        }
+        
+        var description: String {
+            switch self {
+            case .monthly: return "每月自动续期，可随时取消"
+            case .lifetime: return "一次付费，永久使用"
+            }
+        }
+        
+        var features: [String] {
+            [
+                "✓ 无限使用 AI 生成功能",
+                "✓ 解锁更多生成模板",
+                "✓ 优先使用新功能",
+                "✓ 去除广告"
+            ]
+        }
+    }
+    
+    // 获取指定类型的商品
+    func product(for type: MembershipType) -> Product? {
+        products.first { $0.id == type.rawValue }
+    }
     
     init() {
         Task {
@@ -25,8 +63,7 @@ class StoreManager: ObservableObject {
         }
     }
     
-    func purchase() async -> Bool {
-        guard let product = products.first else { return false }
+    func purchase(_ product: Product) async -> Bool {
         purchasingProduct = product
         purchaseError = nil
         
