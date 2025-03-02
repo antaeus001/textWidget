@@ -76,7 +76,11 @@ class StoreManager: ObservableObject {
     
     func checkAccountStatus() async -> Bool {
         do {
-            // 直接尝试同步账号状态
+            // 添加更多状态检查信息
+            print("开始检查账号状态...")
+            print("Bundle ID:", Bundle.main.bundleIdentifier ?? "unknown")
+            print("Receipt URL:", Bundle.main.appStoreReceiptURL?.path ?? "none")
+            
             try await AppStore.sync()
             print("账号状态检查成功")
             return true

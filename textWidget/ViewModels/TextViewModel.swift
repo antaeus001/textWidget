@@ -1,6 +1,7 @@
 import SwiftUI
 //import SharedModels
 import WidgetKit
+import Combine
 
 class TextViewModel: ObservableObject {
     @Published var currentConfig: ConfigInfo
@@ -8,7 +9,7 @@ class TextViewModel: ObservableObject {
     
     @Published var model: TextModel {
         didSet {
-            saveText()
+            saveModel()
         }
     }
     
@@ -21,12 +22,13 @@ class TextViewModel: ObservableObject {
         } else {
             currentConfig = ConfigInfo(name: "默认配置", id: 1)
         }
-        // 尝试从UserDefaults加载数据
-        if let data = userDefaults?.data(forKey: Constants.widgetUserDefaultsKey),
+        // 从 UserDefaults 加载或使用默认值
+        if let data = userDefaults?.data(forKey: Constants.configKey),
            let savedModel = try? JSONDecoder().decode(TextModel.self, from: data) {
             self.model = savedModel
         } else {
-            self.model = TextModel()
+            // 创建默认样式的模型
+            self.model = TextViewModel.createDefaultModel()
         }
     }
     
@@ -54,12 +56,37 @@ class TextViewModel: ObservableObject {
         configManager.saveConfig(currentConfig)
     }
     
-    func saveText() {
-        guard let data = try? JSONEncoder().encode(model) else { return }
-        userDefaults?.set(data, forKey: Constants.widgetUserDefaultsKey)
-        userDefaults?.synchronize() // 强制同步
+    private func saveModel() {
+        if let encoded = try? JSONEncoder().encode(model) {
+            userDefaults?.set(encoded, forKey: Constants.configKey)
+            // 通知小组件更新
+            WidgetCenter.shared.reloadAllTimelines()
+        }
+    }
+    
+    // 创建默认样式的模型
+    static func createDefaultModel() -> TextModel {
+        var model = TextModel()
         
-        // 通知Widget更新
-        WidgetCenter.shared.reloadAllTimelines()
+        // 设置默认文本
+        model.text = "欢迎使用 AI Widget Text"
+        
+        // 添加默认轮播文本
+        model.texts = [
+            "轻松创建精美文本小组件",
+            "支持多种样式和颜色自定义",
+            "AI 智能生成多条轮播内容"
+        ]
+        
+        // 设置默认样式
+        model.fontSize = 24
+        model.textColor = Color(red: 0.31, green: 0.54, blue: 0.38) // 与图标颜色匹配的绿色
+        model.backgroundColor = Color(red: 0.95, green: 0.98, blue: 0.96) // 淡绿色背景
+        model.alignment = .center
+        model.borderWidth = 2
+        model.borderColor = Color(red: 0.31, green: 0.54, blue: 0.38).opacity(0.5)
+        model.rotationInterval = 3.0
+        
+        return model
     }
 } 

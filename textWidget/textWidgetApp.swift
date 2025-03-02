@@ -10,7 +10,6 @@ import StoreKit
 
 @main
 struct textWidgetApp: App {
-    // 添加事务监听器
     @StateObject private var transactionListener = TransactionListener()
     
     var body: some Scene {
@@ -25,17 +24,9 @@ class TransactionListener: ObservableObject {
     init() {
         // 启动事务监听
         Task {
-            for await result in Transaction.updates {
-                do {
-                    let transaction = try checkVerified(result)
-                    // 处理交易
-                    await transaction.finish()
-                    
-                    // 更新用户状态
-                    UserSettings.shared.isPremium = true
-                } catch {
-                    print("交易验证失败:", error)
-                }
+            // 监听新交易
+            for await verificationResult in StoreKit.Transaction.updates {
+                await handle(verificationResult)
             }
         }
         
@@ -46,26 +37,27 @@ class TransactionListener: ObservableObject {
     }
     
     @MainActor
-    func checkPreviousPurchases() async {
-        for await result in Transaction.currentEntitlements {
-            do {
-                let transaction = try checkVerified(result)
-                // 有效的购买记录，更新用户状态
-                UserSettings.shared.isPremium = true
+    private func handle(_ verificationResult: VerificationResult<StoreKit.Transaction>) async {
+        do {
+            switch verificationResult {
+            case .verified(let transaction):
+                print("收到已验证的交易:", transaction.id)
+                // 处理验证通过的交易
                 await transaction.finish()
-            } catch {
-                print("之前的购买验证失败:", error)
+                UserSettings.shared.isPremium = true
+            case .unverified(let transaction, let error):
+                print("收到未验证的交易:", transaction.id)
+                print("验证错误:", error)
             }
+        } catch {
+            print("处理交易时出错:", error)
         }
     }
     
-    func checkVerified<T>(_ result: VerificationResult<T>) throws -> T {
-        switch result {
-        case .unverified(_, let error):
-            print("验证失败:", error)
-            throw StoreError.failedVerification
-        case .verified(let safe):
-            return safe
+    @MainActor
+    func checkPreviousPurchases() async {
+        for await result in StoreKit.Transaction.currentEntitlements {
+            await handle(result)
         }
     }
 }

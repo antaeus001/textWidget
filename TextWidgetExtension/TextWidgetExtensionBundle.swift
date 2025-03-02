@@ -8,10 +8,9 @@
 import WidgetKit
 import SwiftUI
 
+@main
 struct TextWidgetExtensionBundle: WidgetBundle {
     var body: some Widget {
-        TextWidgetExtension()
-        TextWidgetExtensionControl()
-        TextWidgetExtensionLiveActivity()
+        TextWidget()
     }
 }
