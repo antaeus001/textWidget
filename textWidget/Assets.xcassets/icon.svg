@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+    <!-- 定义渐变和图案 -->
+    <defs>
+        <!-- 更强烈的背景渐变 -->
+        <linearGradient id="bg-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#E8F5EA"/>
+            <stop offset="100%" style="stop-color:#FFFFFF"/>
+        </linearGradient>
+        
+        <!-- 更大的装饰性图案 -->
+        <pattern id="dots" x="0" y="0" width="60" height="60" patternUnits="userSpaceOnUse">
+            <circle cx="30" cy="30" r="3" fill="#4F8A61" fill-opacity="0.15"/>
+        </pattern>
+
+        <!-- 添加十字装饰图案 -->
+        <pattern id="crosses" x="0" y="0" width="120" height="120" patternUnits="userSpaceOnUse">
+            <path d="M60 55 V65 M55 60 H65" 
+                  stroke="#4F8A61" 
+                  stroke-width="2"
+                  stroke-opacity="0.1"/>
+        </pattern>
+    </defs>
+
+    <!-- 背景层 -->
+    <rect x="0" y="0" width="1024" height="1024" rx="224" ry="224"
+          fill="url(#bg-gradient)"/>
+          
+    <!-- 装饰性图案层 -->
+    <rect x="0" y="0" width="1024" height="1024" rx="224" ry="224"
+          fill="url(#dots)"/>
+    
+    <!-- 十字装饰层 -->
+    <rect x="0" y="0" width="1024" height="1024" rx="224" ry="224"
+          fill="url(#crosses)"/>
+          
+    <!-- 装饰性线条 -->
+    <path d="M0 512 H1024" 
+          stroke="#4F8A61" 
+          stroke-width="3"
+          stroke-opacity="0.15"/>
+    <path d="M512 0 V1024" 
+          stroke="#4F8A61" 
+          stroke-width="3"
+          stroke-opacity="0.15"/>
+
+    <!-- AI 文字 -->
+    <text x="512" y="400"
+          font-family="Times New Roman, serif"
+          font-size="400"
+          font-weight="bold"
+          fill="#4F8A61"
+          text-anchor="middle"
+          letter-spacing="-20">
+        AI
+    </text>
+
+    <!-- WIDGET 文字 -->
+    <text x="512" y="600"
+          font-family="Times New Roman, serif"
+          font-size="180"
+          font-weight="bold"
+          fill="#4F8A61"
+          text-anchor="middle"
+          letter-spacing="10">
+        WIDGET
+    </text>
+
+    <!-- TEXT 文字 -->
+    <text x="512" y="800"
+          font-family="Times New Roman, serif"
+          font-size="180"
+          font-weight="bold"
+          fill="#4F8A61"
+          text-anchor="middle"
+          letter-spacing="10">
+        TEXT
+    </text>
+    
+    <!-- 边框装饰 -->
+    <rect x="32" y="32" width="960" height="960" rx="192" ry="192"
+          fill="none"
+          stroke="#4F8A61"
+          stroke-width="3"
+          stroke-opacity="0.25"/>
+</svg> 

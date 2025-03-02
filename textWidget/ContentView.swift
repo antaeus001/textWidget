@@ -466,63 +466,79 @@ struct PurchaseView: View {
                     }
                     .padding(.vertical, 30)
                     
-                    // 会员方案选择
-                    VStack(spacing: 16) {
-                        // 月度会员
-                        if let monthlyProduct = storeManager.product(for: .monthly) {
-                            membershipCard(
-                                type: .monthly,
-                                price: monthlyProduct.displayPrice,
-                                action: {
-                                    Task {
-                                        if await storeManager.purchase(monthlyProduct) {
-                                            onPurchaseSuccess()
-                                            dismiss()
-                                        }
-                                    }
+                    if storeManager.isLoadingProducts {
+                        ProgressView("正在加载商品...")
+                            .padding()
+                    } else if storeManager.products.isEmpty {
+                        VStack(spacing: 12) {
+                            Text("暂无可用商品")
+                                .font(.headline)
+                            Button("重试") {
+                                Task {
+                                    await storeManager.loadProducts()
                                 }
-                            )
-                        }
-                        
-                        // 永久会员
-                        if let lifetimeProduct = storeManager.product(for: .lifetime) {
-                            membershipCard(
-                                type: .lifetime,
-                                price: lifetimeProduct.displayPrice,
-                                action: {
-                                    Task {
-                                        if await storeManager.purchase(lifetimeProduct) {
-                                            onPurchaseSuccess()
-                                            dismiss()
-                                        }
-                                    }
-                                }
-                            )
-                        }
-                    }
-                    .padding(.horizontal)
-                    
-                    // 恢复购买按钮
-                    Button("恢复购买") {
-                        Task {
-                            await storeManager.restorePurchases()
-                            if UserSettings.shared.isPremium {
-                                dismiss()
                             }
                         }
+                        .padding()
+                    } else {
+                        // 会员方案选择
+                        VStack(spacing: 16) {
+                            // 月度会员
+                            if let monthlyProduct = storeManager.product(for: .monthly) {
+                                membershipCard(
+                                    type: .monthly,
+                                    price: monthlyProduct.displayPrice,
+                                    action: {
+                                        Task {
+                                            if await storeManager.purchase(monthlyProduct) {
+                                                onPurchaseSuccess()
+                                                dismiss()
+                                            }
+                                        }
+                                    }
+                                )
+                            }
+                            
+                            // 永久会员
+                            if let lifetimeProduct = storeManager.product(for: .lifetime) {
+                                membershipCard(
+                                    type: .lifetime,
+                                    price: lifetimeProduct.displayPrice,
+                                    action: {
+                                        Task {
+                                            if await storeManager.purchase(lifetimeProduct) {
+                                                onPurchaseSuccess()
+                                                dismiss()
+                                            }
+                                        }
+                                    }
+                                )
+                            }
+                        }
+                        .padding(.horizontal)
+                        
+                        // 恢复购买按钮
+                        Button("恢复购买") {
+                            Task {
+                                await storeManager.restorePurchases()
+                                if UserSettings.shared.isPremium {
+                                    dismiss()
+                                }
+                            }
+                        }
+                        .foregroundColor(.blue)
+                        .padding(.top)
+                        
+                        // 隐私和条款链接
+                        HStack {
+                            Link("隐私政策", destination: URL(string: "https://your-privacy-policy-url")!)
+                            Text("·")
+                            Link("使用条款", destination: URL(string: "https://your-terms-url")!)
+                        }
+                        .font(.footnote)
+                        .foregroundColor(.gray)
+                        .padding(.top, 30)
                     }
-                    .foregroundColor(.blue)
-                    .padding(.top)
-                    
-                    // 隐私和条款链接
-                    HStack {
-                        Link("隐私政策", destination: URL(string: "https://your-privacy-policy-url")!)
-                        Text("·")
-                        Link("使用条款", destination: URL(string: "https://your-terms-url")!)
-                    }
-                    .font(.footnote)
-                    .foregroundColor(.gray)
-                    .padding(.top, 30)
                 }
                 .padding()
             }
@@ -531,6 +547,13 @@ struct PurchaseView: View {
                     dismiss()
                 }
             )
+        }
+        .onAppear {
+            if storeManager.products.isEmpty {
+                Task {
+                    await storeManager.loadProducts()
+                }
+            }
         }
         .alert("购买失败", isPresented: .init(
             get: { storeManager.purchaseError != nil },

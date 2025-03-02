@@ -1,3 +1,32 @@
+#!/bin/bash
+
+# 设置输入文件名和输出目录
+input="icon.svg"
+output_dir="AppIcon.appiconset"
+
+# 创建输出目录
+#mkdir -p "$output_dir"
+
+# iOS 应用图标尺寸数组
+declare -a sizes=(
+    "20x20:20" "40x40:20@2x" "60x60:20@3x"
+    "29x29:29" "58x58:29@2x" "87x87:29@3x"
+    "40x40:40" "80x80:40@2x" "120x120:40@3x"
+    "120x120:60@2x" "180x180:60@3x"
+    "76x76:76" "152x152:76@2x"
+    "167x167:83.5@2x"
+    "1024x1024:1024"
+)
+
+# 转换命令
+for size in "${sizes[@]}"; do
+    dimensions=${size%%:*}
+    filename=${size##*:}
+    magick "$input" -resize "$dimensions" -background none "$output_dir/icon_${filename}.png"
+done
+
+# 生成 Contents.json
+cat > "$output_dir/Contents.json" << EOF
 {
   "images" : [
     {
@@ -114,3 +143,4 @@
     "author" : "xcode"
   }
 }
+EOF
