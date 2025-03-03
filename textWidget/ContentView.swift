@@ -59,6 +59,7 @@ struct ContentView: View {
                     .padding()
             }
             .navigationTitle("AI Widget Text配置")
+            .navigationBarTitleDisplayMode(.inline)
             .sheet(isPresented: $isEditing) {
                 TextEditorView(text: $viewModel.model.text)
             }
