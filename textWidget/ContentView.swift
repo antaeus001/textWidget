@@ -76,6 +76,7 @@ struct TextPreviewView: View {
     @State private var isAddingText = false
     @State private var editingText: String = ""
     @State private var selectedSize: PreviewSize = .medium  // 添加尺寸选择状态
+    @State private var editingIndex: Int = -1  // -1表示主文本，>=0表示轮播文本索引
     
     // 添加定时器
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
@@ -145,22 +146,27 @@ struct TextPreviewView: View {
             }
         }
         .sheet(isPresented: $isAddingText) {
-            TextEditorView(text: Binding(
-                get: { editingText },
-                set: { newValue in
-                    editingText = newValue
-                    if !newValue.isEmpty {
+            TextEditorView(
+                text: $editingText,
+                title: editingIndex == -2 ? "添加新文本" : 
+                       (editingIndex == -1 ? "编辑主文本" : "编辑轮播文本 #\(editingIndex + 1)"),
+                onSave: { newText in
+                    if !newText.isEmpty {
                         var updatedModel = model
-                        if currentPage == model.texts.count + 1 {
-                            updatedModel.texts.append(newValue)
-                            currentPage = model.texts.count
-                        } else if currentPage > 0 {
-                            updatedModel.texts[currentPage - 1] = newValue
+                        if editingIndex == -2 {
+                            // 添加新文本
+                            updatedModel.texts.append(newText)
+                        } else if editingIndex == -1 {
+                            // 更新主文本
+                            updatedModel.text = newText
+                        } else if editingIndex >= 0 && editingIndex < model.texts.count {
+                            // 更新轮播文本
+                            updatedModel.texts[editingIndex] = newText
                         }
                         onModelUpdate(updatedModel)
                     }
                 }
-            ))
+            )
         }
     }
     
@@ -183,7 +189,9 @@ struct TextPreviewView: View {
                     .stroke(model.borderColor, lineWidth: model.borderWidth)
             )
             .onTapGesture {
-                isEditing = true
+                editingText = model.text
+                editingIndex = -1  // -1 表示主文本
+                isAddingText = true
             }
     }
     
@@ -192,8 +200,8 @@ struct TextPreviewView: View {
             .font(.system(size: model.fontSize))
             .foregroundColor(model.textColor)
             .multilineTextAlignment(model.alignment)
-            .padding(.horizontal, 16)  // 添加水平内边距
-            .padding(.vertical, 12)    // 添加垂直内边距
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
             .frame(
                 maxWidth: selectedSize.width,
                 maxHeight: selectedSize.height,
@@ -207,6 +215,7 @@ struct TextPreviewView: View {
             )
             .onTapGesture {
                 editingText = text
+                editingIndex = index  // 直接使用轮播文本的索引
                 isAddingText = true
             }
             .contextMenu {
@@ -250,6 +259,7 @@ struct TextPreviewView: View {
         )
         .onTapGesture {
             editingText = ""
+            editingIndex = -2  // -2 表示添加新文本
             isAddingText = true
         }
     }
