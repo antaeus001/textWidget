@@ -58,7 +58,7 @@ struct ContentView: View {
                 StyleControlPanel(model: $viewModel.model)
                     .padding()
             }
-            .navigationTitle("文本小组件配置")
+            .navigationTitle("AI Widget Text配置")
             .sheet(isPresented: $isEditing) {
                 TextEditorView(text: $viewModel.model.text)
             }

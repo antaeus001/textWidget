@@ -33,7 +33,6 @@ class AIService {
         
         let userPrompt = """
         提示词：\(prompt)
-        请生成\(count)条相关文本。
         """
         
         let body: [String: Any] = [
