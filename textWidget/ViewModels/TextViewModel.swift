@@ -85,7 +85,7 @@ class TextViewModel: ObservableObject {
         model.alignment = .center
         model.borderWidth = 2
         model.borderColor = Color(red: 0.31, green: 0.54, blue: 0.38).opacity(0.5)
-        model.rotationInterval = 3.0
+        model.rotationInterval = 10.0  // 修改为10秒
         
         return model
     }

@@ -77,6 +77,8 @@ struct TextPreviewView: View {
     @State private var editingText: String = ""
     @State private var selectedSize: PreviewSize = .medium  // 添加尺寸选择状态
     @State private var editingIndex: Int = -1  // -1表示主文本，>=0表示轮播文本索引
+    @State private var isUserInteracting: Bool = false
+    @State private var lastInteractionTime = Date()
     
     // 添加定时器
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
@@ -115,6 +117,24 @@ struct TextPreviewView: View {
             .frame(width: selectedSize.width, height: selectedSize.height)
             .background(Color.gray.opacity(0.1))
             .cornerRadius(containerCornerRadius)
+            .gesture(
+                DragGesture(minimumDistance: 10)
+                    .onChanged { _ in
+                        // 用户开始交互
+                        isUserInteracting = true
+                        lastInteractionTime = Date()
+                    }
+                    .onEnded { _ in
+                        // 用户结束交互
+                        lastInteractionTime = Date()
+                        // 延迟一段时间后恢复自动轮播
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                            if Date().timeIntervalSince(lastInteractionTime) >= 2 {
+                                isUserInteracting = false
+                            }
+                        }
+                    }
+            )
             
             // 页面指示器移到外面
             if model.texts.count > 0 {
@@ -129,8 +149,8 @@ struct TextPreviewView: View {
             }
         }
         .onReceive(timer) { currentTime in
-            // 只在有轮播文本时进行轮播
-            if !model.texts.isEmpty {
+            // 只在有轮播文本且用户不在交互时进行轮播
+            if !model.texts.isEmpty && !isUserInteracting {
                 let timeDiff = currentTime.timeIntervalSince(lastUpdateTime)
                 if timeDiff >= model.rotationInterval {
                     withAnimation {
@@ -156,12 +176,30 @@ struct TextPreviewView: View {
                         if editingIndex == -2 {
                             // 添加新文本
                             updatedModel.texts.append(newText)
+                            // 保存后跳转到新添加的文本
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                                withAnimation {
+                                    currentPage = updatedModel.texts.count
+                                }
+                            }
                         } else if editingIndex == -1 {
                             // 更新主文本
                             updatedModel.text = newText
+                            // 保存后跳转到主文本
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                                withAnimation {
+                                    currentPage = 0
+                                }
+                            }
                         } else if editingIndex >= 0 && editingIndex < model.texts.count {
                             // 更新轮播文本
                             updatedModel.texts[editingIndex] = newText
+                            // 保存后跳转到编辑的文本
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                                withAnimation {
+                                    currentPage = editingIndex + 1
+                                }
+                            }
                         }
                         onModelUpdate(updatedModel)
                     }
@@ -274,6 +312,18 @@ struct AIGenerateView: View {
     @State private var isGenerating = false
     @State private var errorMessage: String?
     
+    // 添加常用提示词
+    private let commonPrompts = [
+        "生成励志短语",
+        "创建日常提醒",
+        "生成节日祝福语",
+        "创建工作效率提示",
+        "生成健康生活建议",
+        "生成古诗词",
+        "生成常用英语单词",
+        "生成名著中的优美句子"
+    ]
+    
     var body: some View {
         NavigationView {
             VStack(alignment: .leading, spacing: 16) {
@@ -290,12 +340,35 @@ struct AIGenerateView: View {
                         .padding(8)
                         .background(Color.gray.opacity(0.1))
                         .cornerRadius(8)
-                    
-                    Text("提示：可以输入具体要求，比如\"生成相关的励志短语\"、\"生成不同场景的问候语\"等。")
-                        .font(.caption)
-                        .foregroundColor(.gray)
                 }
                 .padding(.horizontal)
+                
+                // 常用提示词
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("常用提示词")
+                        .font(.headline)
+                        .padding(.horizontal)
+                    
+                    // 使用 FlowLayout 替代 ScrollView
+                    FlowLayout(spacing: 10) {
+                        ForEach(commonPrompts, id: \.self) { suggestion in
+                            Button(action: {
+                                prompt = suggestion
+                            }) {
+                                Text(suggestion)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 8)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .fill(Color(red: 0.31, green: 0.54, blue: 0.38).opacity(0.1))
+                                    )
+                                    .foregroundColor(Color(red: 0.31, green: 0.54, blue: 0.38))
+                            }
+                        }
+                    }
+                    .padding(.horizontal)
+                }
+                .padding(.vertical)
                 
                 if let error = errorMessage {
                     Text(error)
@@ -609,6 +682,61 @@ struct PurchaseView: View {
         .padding()
         .background(Color.gray.opacity(0.1))
         .cornerRadius(16)
+    }
+}
+
+// 流式布局视图
+struct FlowLayout: Layout {
+    var spacing: CGFloat = 8
+    
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let width = proposal.width ?? .infinity
+        let sizes = subviews.map { $0.sizeThatFits(.unspecified) }
+        
+        var height: CGFloat = 0
+        var currentX: CGFloat = 0
+        var currentRow: CGFloat = 0
+        
+        for (index, size) in sizes.enumerated() {
+            if currentX + size.width > width {
+                // 换行
+                currentX = 0
+                currentRow += 1
+            }
+            
+            let y = currentRow * (size.height + spacing)
+            height = max(height, y + size.height)
+            currentX += size.width + spacing
+        }
+        
+        return CGSize(width: width, height: height)
+    }
+    
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let sizes = subviews.map { $0.sizeThatFits(.unspecified) }
+        
+        var currentX: CGFloat = bounds.minX
+        var currentY: CGFloat = bounds.minY
+        var rowHeight: CGFloat = 0
+        
+        for (index, subview) in subviews.enumerated() {
+            let size = sizes[index]
+            rowHeight = max(rowHeight, size.height)
+            
+            if currentX + size.width > bounds.maxX {
+                // 换行
+                currentX = bounds.minX
+                currentY += rowHeight + spacing
+                rowHeight = size.height
+            }
+            
+            subview.place(
+                at: CGPoint(x: currentX, y: currentY),
+                proposal: ProposedViewSize(size)
+            )
+            
+            currentX += size.width + spacing
+        }
     }
 }
 

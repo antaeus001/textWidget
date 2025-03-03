@@ -138,7 +138,6 @@ struct TextEditorView: View {
     
     // 常用文本建议
     private let commonTexts = [
-        "欢迎使用 AI Widget Text",
         "今日天气：晴",
         "记得喝水",
         "今日待办事项",

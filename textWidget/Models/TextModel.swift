@@ -50,7 +50,7 @@ public struct TextModel: Codable, Equatable {
     public var text: String = ""
     public var texts: [String] = []
     public var fontSize: Double = 20
-    public var rotationInterval: TimeInterval = 5.0
+    public var rotationInterval: TimeInterval = 10.0
     public var currentTextIndex: Int = 0  // 添加当前文本索引
     public var borderWidth: Double = 0
     
