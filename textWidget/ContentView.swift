@@ -809,10 +809,28 @@ struct SettingsView: View {
             List {
                 Section(header: Text("关于")) {
                     HStack {
-                        Image("AppIcon")
-                            .resizable()
-                            .frame(width: 60, height: 60)
-                            .cornerRadius(12)
+                        // 使用应用的实际图标
+                        if let iconsDictionary = Bundle.main.infoDictionary?["CFBundleIcons"] as? [String: Any],
+                           let primaryIconsDictionary = iconsDictionary["CFBundlePrimaryIcon"] as? [String: Any],
+                           let iconFiles = primaryIconsDictionary["CFBundleIconFiles"] as? [String],
+                           let lastIcon = iconFiles.last {
+                            Image(uiImage: UIImage(named: lastIcon) ?? UIImage())
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .frame(width: 60, height: 60)
+                                .cornerRadius(12)
+                        } else {
+                            // 回退到系统图标
+                            Image(systemName: "text.bubble.fill")
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .frame(width: 60, height: 60)
+                                .foregroundColor(Color(red: 0.31, green: 0.54, blue: 0.38))
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(Color(red: 0.31, green: 0.54, blue: 0.38).opacity(0.1))
+                                )
+                        }
                         
                         VStack(alignment: .leading) {
                             Text("AI Widget Text")
