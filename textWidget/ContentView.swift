@@ -55,7 +55,7 @@ struct ContentView: View {
                     )
                     .padding()
                     .listRowInsets(EdgeInsets())
-                }
+                    }
                 
                 // 样式控制面板
                 StyleControlPanel(model: $viewModel.model)
@@ -327,6 +327,7 @@ struct AIGenerateView: View {
     
     @State private var isGenerating = false
     @State private var errorMessage: String?
+    @State private var keyboardHeight: CGFloat = 0 // 添加键盘高度状态
     
     // 添加常用提示词
     private let commonPrompts = [
@@ -336,63 +337,66 @@ struct AIGenerateView: View {
         "创建工作效率提示",
         "生成健康生活建议",
         "生成古诗词",
-        "生成常用英语单词",
+        "生成英语四级单词和中文释义",
         "生成名著中的优美句子"
     ]
     
     var body: some View {
         NavigationView {
-            VStack(alignment: .leading, spacing: 16) {
-                // 生成数量控制
-                Stepper("生成数量: \(numberOfTexts)", value: $numberOfTexts, in: 1...10)
-                    .padding(.horizontal)
-                
-                // Prompt 输入区域
-                VStack(alignment: .leading) {
-                    Text("提示词")
-                        .font(.headline)
-                    TextEditor(text: $prompt)
-                        .frame(height: 100)
-                        .padding(8)
-                        .background(Color.gray.opacity(0.1))
-                        .cornerRadius(8)
-                }
-                .padding(.horizontal)
-                
-                // 常用提示词
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("常用提示词")
-                        .font(.headline)
+            ScrollView { // 使用 ScrollView 替代 VStack 作为主容器
+                VStack(alignment: .leading, spacing: 16) {
+                    // 生成数量控制
+                    Stepper("生成数量: \(numberOfTexts)", value: $numberOfTexts, in: 1...10)
                         .padding(.horizontal)
                     
-                    // 使用 FlowLayout 替代 ScrollView
-                    FlowLayout(spacing: 10) {
-                        ForEach(commonPrompts, id: \.self) { suggestion in
-                            Button(action: {
-                                prompt = suggestion
-                            }) {
-                                Text(suggestion)
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 8)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 8)
-                                            .fill(Color(red: 0.31, green: 0.54, blue: 0.38).opacity(0.1))
-                                    )
-                                    .foregroundColor(Color(red: 0.31, green: 0.54, blue: 0.38))
-                            }
-                        }
+                    // Prompt 输入区域
+                    VStack(alignment: .leading) {
+                        Text("提示词")
+                            .font(.headline)
+                        TextEditor(text: $prompt)
+                            .frame(height: 100)
+                            .padding(8)
+                            .background(Color.gray.opacity(0.1))
+                            .cornerRadius(8)
                     }
                     .padding(.horizontal)
-                }
-                .padding(.vertical)
-                
-                if let error = errorMessage {
-                    Text(error)
-                        .foregroundColor(.red)
+                    
+                    // 常用提示词
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("常用提示词")
+                            .font(.headline)
+                            .padding(.horizontal)
+                        
+                        // 使用 FlowLayout 替代 ScrollView
+                        FlowLayout(spacing: 10) {
+                            ForEach(commonPrompts, id: \.self) { suggestion in
+                                Button(action: {
+                                    prompt = suggestion
+                                }) {
+                                    Text(suggestion)
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 8)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 8)
+                                                .fill(Color(red: 0.31, green: 0.54, blue: 0.38).opacity(0.1))
+                                        )
+                                        .foregroundColor(Color(red: 0.31, green: 0.54, blue: 0.38))
+                                }
+                            }
+                        }
                         .padding(.horizontal)
+                    }
+                    .padding(.vertical)
+                    
+                    if let error = errorMessage {
+                        Text(error)
+                            .foregroundColor(.red)
+                            .padding(.horizontal)
+                    }
+                    
+                    Spacer(minLength: keyboardHeight > 0 ? keyboardHeight - 100 : 0) // 添加动态间距
                 }
-                
-                Spacer()
+                .padding(.bottom, 20) // 确保底部有足够空间
             }
             .navigationTitle("AI生成轮播内容")
             .navigationBarItems(
@@ -436,6 +440,18 @@ struct AIGenerateView: View {
                 }
             }
             .animation(.easeInOut, value: isGenerating)
+            .onAppear {
+                // 添加键盘通知监听
+                NotificationCenter.default.addObserver(forName: UIResponder.keyboardWillShowNotification, object: nil, queue: .main) { notification in
+                    if let keyboardFrame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect {
+                        keyboardHeight = keyboardFrame.height
+                    }
+                }
+                
+                NotificationCenter.default.addObserver(forName: UIResponder.keyboardWillHideNotification, object: nil, queue: .main) { _ in
+                    keyboardHeight = 0
+                }
+            }
         }
     }
     
@@ -601,7 +617,7 @@ struct PurchaseView: View {
                             }
                         }
                         .padding()
-                    } else {
+            } else {
                         // 会员方案选择
                         VStack(spacing: 16) {
                             // 月度会员
