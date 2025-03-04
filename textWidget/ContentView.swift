@@ -408,12 +408,34 @@ struct AIGenerateView: View {
             )
             .overlay {
                 if isGenerating {
-                    ProgressView("生成中...")
-                        .padding()
-                        .background(Color.secondary.opacity(0.1))
-                        .cornerRadius(8)
+                    ZStack {
+                        Color.black.opacity(0.4)
+                            .edgesIgnoringSafeArea(.all)
+                        
+                        VStack(spacing: 16) {
+                            ProgressView()
+                                .scaleEffect(1.5)
+                                .tint(.white)
+                            
+                            Text("AI 正在生成中...")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                            
+                            Text("这可能需要几秒钟时间")
+                                .font(.subheadline)
+                                .foregroundColor(.white.opacity(0.8))
+                        }
+                        .padding(24)
+                        .background(
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(Color(red: 0.31, green: 0.54, blue: 0.38).opacity(0.9))
+                        )
+                        .shadow(radius: 10)
+                    }
+                    .transition(.opacity)
                 }
             }
+            .animation(.easeInOut, value: isGenerating)
         }
     }
     
