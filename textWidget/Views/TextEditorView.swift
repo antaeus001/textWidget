@@ -43,131 +43,102 @@ struct TextEditorView: View {
                         }
                     
                     // 使用 ScrollView 包裹内容
-                    VStack(spacing: 0) {
-                        ScrollView {
-                            VStack(spacing: 0) {
-                                // 字数统计
-                                HStack {
-                                    Text("\(tempText.count) 个字符")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                    Spacer()
-                                }
-                                .padding(.horizontal)
-                                .padding(.top, 8)
-                                
-                                // 文本编辑区
-                                ZStack(alignment: .topLeading) {
-                                    // 背景
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .fill(colorScheme == .dark ? Color(white: 0.15) : Color(white: 0.95))
-                                    
-                                    // 占位文本
-                                    if tempText.isEmpty {
-                                        Text("在此输入文本...")
-                                            .foregroundColor(.secondary)
-                                            .padding(.horizontal, 8)
-                                            .padding(.vertical, 12)
-                                    }
-                                    
-                                    // 文本编辑器
-                                    TextEditor(text: $tempText)
-                                        .scrollContentBackground(.hidden)
-                                        .background(Color.clear)
-                                        .padding(4)
-                                        .focused($isTextFieldFocused)
-                                        .toolbar {
-                                            ToolbarItemGroup(placement: .keyboard) {
-                                                Spacer()
-                                                Button("完成") {
-                                                    isTextFieldFocused = false
-                                                }
-                                            }
-                                        }
-                                }
-                                .frame(height: 200)
-                                .padding()
-                                
-                                // 常用文本建议
-                                if showingSuggestions {
-                                    VStack(alignment: .leading, spacing: 12) {
-                                        Text("常用文本")
-                                            .font(.headline)
-                                            .padding(.horizontal)
-                                        
-                                        // 使用 FlowLayout 替代 ScrollView，实现多行展示
-                                        FlowLayout(spacing: 10) {
-                                            ForEach(commonTexts, id: \.self) { suggestion in
-                                                Button(action: {
-                                                    tempText = suggestion
-                                                }) {
-                                                    Text(suggestion)
-                                                        .padding(.horizontal, 12)
-                                                        .padding(.vertical, 8)
-                                                        .background(
-                                                            RoundedRectangle(cornerRadius: 8)
-                                                                .fill(Color(red: 0.31, green: 0.54, blue: 0.38).opacity(0.1))
-                                                        )
-                                                        .foregroundColor(Color(red: 0.31, green: 0.54, blue: 0.38))
-                                                }
-                                            }
-                                        }
-                                        .padding(.horizontal)
-                                    }
-                                    .padding(.vertical)
-                                }
-                                
-                                // 添加底部空间，确保键盘弹出时内容可见
-                                Spacer(minLength: 100)
+                    ScrollView {
+                        VStack(spacing: 0) {
+                            // 字数统计
+                            HStack {
+                                Text("\(tempText.count) 个字符")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                Spacer()
                             }
-                        }
-                        
-                        // 底部按钮 - 固定在底部
-                        HStack {
-                            Button(action: {
-                                dismiss()
-                            }) {
-                                Text("取消")
-                                    .frame(maxWidth: .infinity)
-                                    .padding()
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 10)
-                                            .stroke(Color.gray, lineWidth: 1)
-                                    )
-                            }
-                            .foregroundColor(.primary)
+                            .padding(.horizontal)
+                            .padding(.top, 8)
                             
-                            Button(action: {
-                                if let onSave = onSave {
-                                    // 如果提供了自定义保存函数，使用它
-                                    onSave(tempText)
-                                } else {
-                                    // 否则使用默认的绑定更新
-                                    text = tempText
+                            // 文本编辑区
+                            ZStack(alignment: .topLeading) {
+                                // 背景
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(colorScheme == .dark ? Color(white: 0.15) : Color(white: 0.95))
+                                
+                                // 占位文本
+                                if tempText.isEmpty {
+                                    Text("在此输入文本...")
+                                        .foregroundColor(.secondary)
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 12)
                                 }
-                                dismiss()
-                            }) {
-                                Text("保存")
-                                    .frame(maxWidth: .infinity)
-                                    .padding()
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 10)
-                                            .fill(Color(red: 0.31, green: 0.54, blue: 0.38))
-                                    )
-                                    .foregroundColor(.white)
+                                
+                                // 文本编辑器
+                                TextEditor(text: $tempText)
+                                    .scrollContentBackground(.hidden)
+                                    .background(Color.clear)
+                                    .padding(4)
+                                    .focused($isTextFieldFocused)
+                                    .toolbar {
+                                        ToolbarItemGroup(placement: .keyboard) {
+                                            Spacer()
+                                            Button("完成") {
+                                                isTextFieldFocused = false
+                                            }
+                                        }
+                                    }
                             }
+                            .frame(height: 200)
+                            .padding()
+                            
+                            // 常用文本建议
+                            if showingSuggestions {
+                                VStack(alignment: .leading, spacing: 12) {
+                                    Text("常用文本")
+                                        .font(.headline)
+                                        .padding(.horizontal)
+                                    
+                                    // 使用 FlowLayout 替代 ScrollView，实现多行展示
+                                    FlowLayout(spacing: 10) {
+                                        ForEach(commonTexts, id: \.self) { suggestion in
+                                            Button(action: {
+                                                tempText = suggestion
+                                            }) {
+                                                Text(suggestion)
+                                                    .padding(.horizontal, 12)
+                                                    .padding(.vertical, 8)
+                                                    .background(
+                                                        RoundedRectangle(cornerRadius: 8)
+                                                            .fill(Color(red: 0.31, green: 0.54, blue: 0.38).opacity(0.1))
+                                                    )
+                                                    .foregroundColor(Color(red: 0.31, green: 0.54, blue: 0.38))
+                                            }
+                                        }
+                                    }
+                                    .padding(.horizontal)
+                                }
+                                .padding(.vertical)
+                            }
+                            
+                            // 添加底部空间，确保键盘弹出时内容可见
+                            Spacer(minLength: 100)
                         }
-                        .padding()
-                        .background(
-                            Rectangle()
-                                .fill(colorScheme == .dark ? Color.black : Color.white)
-                                .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: -5)
-                        )
                     }
                 }
             }
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
+            .navigationBarItems(
+                leading: Button("取消") {
+                    dismiss()
+                },
+                trailing: Button("保存") {
+                    if let onSave = onSave {
+                        // 如果提供了自定义保存函数，使用它
+                        onSave(tempText)
+                    } else {
+                        // 否则使用默认的绑定更新
+                        text = tempText
+                    }
+                    dismiss()
+                }
+            )
             .onAppear {
                 tempText = text
             }
