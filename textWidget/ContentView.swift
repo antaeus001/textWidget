@@ -6,6 +6,8 @@
 //
 
 import SwiftUI
+import SafariServices
+import MessageUI
 
 // 添加预览尺寸枚举
 enum PreviewSize: String, CaseIterable {
@@ -37,6 +39,7 @@ enum PreviewSize: String, CaseIterable {
 struct ContentView: View {
     @StateObject private var viewModel = TextViewModel()
     @State private var isEditing = false
+    @State private var showingSettings = false  // 添加状态变量
     
     var body: some View {
         NavigationView {
@@ -60,8 +63,20 @@ struct ContentView: View {
             }
             .navigationTitle("AI Widget Text配置")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: {
+                        showingSettings = true
+                    }) {
+                        Image(systemName: "gear")
+                    }
+                }
+            }
             .sheet(isPresented: $isEditing) {
                 TextEditorView(text: $viewModel.model.text)
+            }
+            .sheet(isPresented: $showingSettings) {
+                SettingsView()
             }
         }
     }
@@ -739,6 +754,183 @@ struct FlowLayout: Layout {
             currentX += size.width + spacing
         }
     }
+}
+
+// 修改 SettingsView 视图
+struct SettingsView: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var showingPrivacyPolicy = false
+    @State private var showingTerms = false
+    @State private var showingHelp = false
+    @State private var showingMailView = false
+    @State private var mailResult: Result<MFMailComposeResult, Error>? = nil
+    @State private var showingEmailAlert = false  // 添加提示状态
+    
+    var body: some View {
+        NavigationView {
+            List {
+                Section(header: Text("关于")) {
+                    HStack {
+                        Image("AppIcon")
+                            .resizable()
+                            .frame(width: 60, height: 60)
+                            .cornerRadius(12)
+                        
+                        VStack(alignment: .leading) {
+                            Text("AI Widget Text")
+                                .font(.headline)
+                            Text("版本 1.0.0")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(.leading, 8)
+                    }
+                    .padding(.vertical, 8)
+                }
+                
+                Section(header: Text("帮助")) {
+                    Button(action: {
+                        showingHelp = true
+                    }) {
+                        HStack {
+                            Text("使用帮助")
+                            Spacer()
+                            Image(systemName: "questionmark.circle")
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+                
+                Section(header: Text("法律")) {
+                    Button(action: {
+                        showingPrivacyPolicy = true
+                    }) {
+                        HStack {
+                            Text("隐私政策")
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    
+                    Button(action: {
+                        showingTerms = true
+                    }) {
+                        HStack {
+                            Text("用户协议")
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+                
+                Section(header: Text("联系我们")) {
+                    Button(action: {
+                        let email = "wushengwuxi01@163.com"
+                        let subject = "AI Widget Text 反馈"
+                        
+                        // 首先尝试使用内置邮件视图
+                        if MFMailComposeViewController.canSendMail() {
+                            showingMailView = true
+                        } else {
+                            // 如果内置邮件不可用，尝试打开邮件应用
+                            let mailtoString = "mailto:\(email)?subject=\(subject)".addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)
+                            if let mailtoUrl = URL(string: mailtoString ?? "") {
+                                if UIApplication.shared.canOpenURL(mailtoUrl) {
+                                    UIApplication.shared.open(mailtoUrl)
+                                } else {
+                                    // 如果邮件应用也不可用，复制邮箱地址到剪贴板
+                                    UIPasteboard.general.string = email
+                                    showingEmailAlert = true  // 显示提示
+                                }
+                            }
+                        }
+                    }) {
+                        HStack {
+                            Text("发送邮件")
+                            Spacer()
+                            Image(systemName: "envelope")
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+            }
+            .navigationTitle("设置")
+            .navigationBarItems(trailing: Button("完成") {
+                dismiss()
+            })
+            .sheet(isPresented: $showingPrivacyPolicy) {
+                SafariView(url: URL(string: "https://www.huohuaai.com/privacy-textwidget.html")!)
+            }
+            .sheet(isPresented: $showingTerms) {
+                SafariView(url: URL(string: "https://www.huohuaai.com/terms-textwidget.html")!)
+            }
+            .sheet(isPresented: $showingHelp) {
+                SafariView(url: URL(string: "https://www.huohuaai.com/support-textwidget.html")!)
+            }
+            .sheet(isPresented: $showingMailView) {
+                MailView(result: $mailResult, subject: "AI Widget Text 反馈", recipients: ["wushengwuxi01@163.com"], message: "")
+            }
+            .alert("邮箱已复制", isPresented: $showingEmailAlert) {
+                Button("确定", role: .cancel) { }
+            } message: {
+                Text("邮箱地址已复制到剪贴板，您可以手动发送邮件。")
+            }
+        }
+    }
+}
+
+// 添加 MailView 用于发送邮件
+struct MailView: UIViewControllerRepresentable {
+    @Environment(\.presentationMode) var presentationMode
+    @Binding var result: Result<MFMailComposeResult, Error>?
+    var subject: String
+    var recipients: [String]
+    var message: String
+    
+    func makeUIViewController(context: Context) -> MFMailComposeViewController {
+        let vc = MFMailComposeViewController()
+        vc.mailComposeDelegate = context.coordinator
+        vc.setSubject(subject)
+        vc.setToRecipients(recipients)
+        vc.setMessageBody(message, isHTML: false)
+        return vc
+    }
+    
+    func updateUIViewController(_ uiViewController: MFMailComposeViewController, context: Context) {}
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+    
+    class Coordinator: NSObject, MFMailComposeViewControllerDelegate {
+        var parent: MailView
+        
+        init(_ parent: MailView) {
+            self.parent = parent
+        }
+        
+        func mailComposeController(_ controller: MFMailComposeViewController, didFinishWith result: MFMailComposeResult, error: Error?) {
+            if let error = error {
+                parent.result = .failure(error)
+            } else {
+                parent.result = .success(result)
+            }
+            parent.presentationMode.wrappedValue.dismiss()
+        }
+    }
+}
+
+// 添加 SafariView 用于显示网页
+struct SafariView: UIViewControllerRepresentable {
+    let url: URL
+    
+    func makeUIViewController(context: Context) -> SFSafariViewController {
+        return SFSafariViewController(url: url)
+    }
+    
+    func updateUIViewController(_ uiViewController: SFSafariViewController, context: Context) {}
 }
 
 #Preview {
