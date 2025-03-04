@@ -47,7 +47,7 @@ struct TextEditorView: View {
                         VStack(spacing: 0) {
                             // 字数统计
                             HStack {
-                                Text("\(tempText.count) 个字符")
+                                Text("\(countWords(in: tempText)) 字")
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                                 Spacer()
@@ -150,6 +150,25 @@ struct TextEditorView: View {
                     }
             )
         }
+    }
+    
+    // 修改计算字数函数，确保中文字符不被重复计算
+    private func countWords(in text: String) -> Int {
+        if text.isEmpty {
+            return 0
+        }
+        
+        // 计算中文字符
+        let chineseCount = text.filter { $0 >= "\u{4E00}" && $0 <= "\u{9FA5}" }.count
+        
+        // 移除所有中文字符，只保留非中文部分
+        let nonChineseText = text.filter { !($0 >= "\u{4E00}" && $0 <= "\u{9FA5}") }
+        
+        // 计算英文单词
+        let components = nonChineseText.components(separatedBy: .whitespacesAndNewlines)
+        let englishCount = components.filter { !$0.isEmpty && $0.rangeOfCharacter(from: .letters) != nil }.count
+        
+        return chineseCount + englishCount
     }
 }
 
