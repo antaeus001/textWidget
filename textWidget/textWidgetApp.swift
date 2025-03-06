@@ -11,10 +11,15 @@ import StoreKit
 @main
 struct textWidgetApp: App {
     @StateObject private var transactionListener = TransactionListener()
+    @StateObject private var storeManager = StoreManager.shared
     
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .task {
+                    // 应用启动时检查订阅状态
+                    await storeManager.checkSubscriptionStatus()
+                }
         }
     }
 }

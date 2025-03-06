@@ -611,11 +611,11 @@ struct PurchaseView: View {
                             .padding()
                     } else if storeManager.products.isEmpty {
                         VStack(spacing: 12) {
-                            Text("暂无可用商品")
+                            Text("暂无商品")
                                 .font(.headline)
                             Button("重试") {
                                 Task {
-                                    await storeManager.loadProducts()
+                                    await storeManager.refreshProducts()
                                 }
                             }
                         }
@@ -659,35 +659,41 @@ struct PurchaseView: View {
                     }
                     
                     // 修改恢复购买按钮
-                    Button(action: {
-                        isRestoring = true
-                        Task {
-                            do {
-                                try await storeManager.restorePurchases()
-                                if UserSettings.shared.isPremium {
-                                    alertMessage = "购买已恢复"
-                                    onPurchaseSuccess()
-                                    dismiss()
-                                } else {
-                                    alertMessage = "没有找到可恢复的购买"
+                    VStack(spacing: 8) {
+                        Button(action: {
+                            isRestoring = true
+                            Task {
+                                do {
+                                    try await storeManager.restorePurchases()
+                                    if UserSettings.shared.isPremium {
+                                        alertMessage = "已恢复您的会员权限"
+                                        onPurchaseSuccess()
+                                        dismiss()
+                                    } else {
+                                        alertMessage = "未找到可恢复的会员权限"
+                                    }
+                                } catch {
+                                    alertMessage = "恢复失败：\(error.localizedDescription)"
                                 }
-                            } catch {
-                                alertMessage = "恢复购买失败：\(error.localizedDescription)"
+                                isRestoring = false
+                                showAlert = true
                             }
-                            isRestoring = false
-                            showAlert = true
-                        }
-                    }) {
-                        HStack {
-                            Text("恢复购买")
-                            if isRestoring {
-                                ProgressView()
-                                    .progressViewStyle(CircularProgressViewStyle())
+                        }) {
+                            HStack {
+                                Text("恢复已购项目")
+                                if isRestoring {
+                                    ProgressView()
+                                        .progressViewStyle(CircularProgressViewStyle())
+                                }
                             }
                         }
+                        .disabled(isRestoring)
+                        
+                        Text("如果您之前购买过会员，可以点击此处恢复")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
                     }
-                    .disabled(isRestoring)
-                    .padding()
+                    .padding(.top)
                     
                     // 订阅说明
                     VStack(alignment: .leading, spacing: 8) {
@@ -723,6 +729,14 @@ struct PurchaseView: View {
             })
             .alert(alertMessage, isPresented: $showAlert) {
                 Button("确定", role: .cancel) { }
+            }
+        }
+        .onAppear {
+            // 如果产品列表为空，尝试加载
+            if storeManager.products.isEmpty {
+                Task {
+                    await storeManager.loadProducts()
+                }
             }
         }
     }
@@ -828,7 +842,8 @@ struct SettingsView: View {
     @State private var showingMailView = false
     @State private var mailResult: Result<MFMailComposeResult, Error>? = nil
     @StateObject private var storeManager = StoreManager.shared
-    @State private var showingPurchaseView = false  // 添加状态变量
+    @State private var showingPurchaseView = false
+    @State private var isCheckingSubscription = false
     
     var body: some View {
         NavigationView {
@@ -837,42 +852,64 @@ struct SettingsView: View {
                 Section {
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
-                            // 会员状态图标
-                            if UserSettings.shared.isPremium {
-                                Image(systemName: "checkmark.seal.fill")
-                                    .foregroundColor(.green)
-                                    .font(.title2)
+                            // 会员状态图标和信息
+                            if isCheckingSubscription {
+                                // 加载状态
+                                ProgressView()
+                                    .padding(.trailing, 8)
+                                Text("正在加载会员信息...")
+                                    .foregroundColor(.secondary)
                             } else {
-                                Image(systemName: "crown.fill")
-                                    .foregroundColor(.orange)
-                                    .font(.title2)
-                            }
-                            
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(UserSettings.shared.isPremium ? "已激活会员" : "未激活会员")
-                                    .font(.headline)
-                                
+                                // 显示会员信息
+                                // 会员状态图标
                                 if UserSettings.shared.isPremium {
-                                    if storeManager.currentSubscription == .lifetime {
-                                        Text("永久会员")
-                                            .foregroundColor(.secondary)
-                                    } else if storeManager.currentSubscription == .monthly {
-                                        if let expirationDate = storeManager.subscriptionExpirationDate {
-                                            Text("月度会员 · 下次续费时间：\(expirationDate.formatted(date: .abbreviated, time: .omitted))")
-                                                .foregroundColor(.secondary)
-                                        }
-                                    }
+                                    Image(systemName: "checkmark.seal.fill")
+                                        .foregroundColor(.green)
+                                        .font(.title2)
                                 } else {
-                                    Text("剩余【AI生成轮播内容】免费次数：\(UserSettings.shared.remainingFreeGenerates)")
-                                        .foregroundColor(.secondary)
+                                    Image(systemName: "crown.fill")
+                                        .foregroundColor(.orange)
+                                        .font(.title2)
+                                }
+                                
+                                VStack(alignment: .leading, spacing: 4) {
+                                    // 会员状态标题
+                                    Text(UserSettings.shared.isPremium ? "已激活会员" : "未激活会员")
+                                        .font(.headline)
+                                    
+                                    // 会员详细信息
+                                    if UserSettings.shared.isPremium {
+                                        // 会员类型和续费信息
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            if let subscription = storeManager.currentSubscription {
+                                                switch subscription {
+                                                case .lifetime:
+                                                    Text("永久会员")
+                                                        .foregroundColor(.secondary)
+                                                case .monthly:
+                                                    Text("月度会员")
+                                                        .foregroundColor(.secondary)
+                                                    if let expirationDate = storeManager.subscriptionExpirationDate {
+                                                        Text("下次续费时间：\(expirationDate.formatToChineseDate())")
+                                                            .foregroundColor(.secondary)
+                                                            .font(.caption)
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    } else {
+                                        Text("剩余【AI生成轮播内容】免费次数：\(UserSettings.shared.remainingFreeGenerates)")
+                                            .foregroundColor(.secondary)
+                                    }
                                 }
                             }
                             
                             Spacer()
                             
+                            // 升级按钮
                             if !UserSettings.shared.isPremium {
                                 Button("升级") {
-                                    showingPurchaseView = true  // 显示购买页面
+                                    showingPurchaseView = true
                                 }
                                 .buttonStyle(.bordered)
                                 .tint(.blue)
@@ -880,6 +917,22 @@ struct SettingsView: View {
                         }
                     }
                     .padding(.vertical, 8)
+                    
+                    // 刷新按钮
+                    HStack {
+                        Spacer()
+                        Button(action: {
+                            isCheckingSubscription = true
+                            Task {
+                                await storeManager.checkSubscriptionStatus()
+                                isCheckingSubscription = false
+                            }
+                        }) {
+                            Image(systemName: "arrow.clockwise")
+                                .foregroundColor(.secondary)
+                        }
+                        .disabled(isCheckingSubscription)
+                    }
                 }
                 
                 // 关于部分
@@ -1008,6 +1061,14 @@ struct SettingsView: View {
                         await storeManager.checkSubscriptionStatus()
                     }
                 }
+            }
+        }
+        .onAppear {
+            // 在页面出现时检查订阅状态
+            isCheckingSubscription = true
+            Task {
+                await storeManager.checkSubscriptionStatus()
+                isCheckingSubscription = false
             }
         }
     }
