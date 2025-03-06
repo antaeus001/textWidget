@@ -617,7 +617,7 @@ struct PurchaseView: View {
                             }
                         }
                         .padding()
-            } else {
+                    } else {
                         // 会员方案选择
                         VStack(spacing: 16) {
                             // 月度会员
@@ -653,57 +653,49 @@ struct PurchaseView: View {
                             }
                         }
                         .padding(.horizontal)
+                    }
+                    
+                    // 自动续订说明
+                    VStack(spacing: 10) {
+                        Text("订阅说明")
+                            .font(.headline)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                         
-                        // 恢复购买按钮
-                        Button("恢复购买") {
-                            Task {
-                                await storeManager.restorePurchases()
-                                if UserSettings.shared.isPremium {
-                                    dismiss()
-                                }
+                        Text("• 付款将在确认购买时从 iTunes 账户中扣除\n• 订阅会自动续订，除非在当前订阅期结束前至少24小时关闭自动续订\n• 账户将在当前订阅期结束前24小时内扣款续订\n• 用户可以在购买后前往 App Store 的账户设置管理订阅和关闭自动续订")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.horizontal)
+                    
+                    // 恢复购买按钮
+                    Button("恢复购买") {
+                        Task {
+                            await storeManager.restorePurchases()
+                            if UserSettings.shared.isPremium {
+                                onPurchaseSuccess()
+                                dismiss()
                             }
                         }
-                        .foregroundColor(.blue)
-                        .padding(.top)
-                        
-                        // 隐私和条款链接
-                        HStack {
-                            Link("隐私政策", destination: URL(string: "https://your-privacy-policy-url")!)
-                            Text("·")
-                            Link("使用条款", destination: URL(string: "https://your-terms-url")!)
-                        }
-                        .font(.footnote)
-                        .foregroundColor(.gray)
-                        .padding(.top, 30)
                     }
-                }
-                .padding()
-            }
-            .navigationBarItems(
-                trailing: Button("关闭") {
-                    dismiss()
-                }
-            )
-        }
-        .onAppear {
-            if storeManager.products.isEmpty {
-                Task {
-                    await storeManager.loadProducts()
+                    .padding()
+                    
+                    // 添加必要的链接
+                    HStack {
+                        Link("隐私政策", destination: URL(string: "https://www.huohuaai.com/privacy-textwidget.html")!)
+                        Text("•")
+                        Link("使用条款", destination: URL(string: "https://www.huohuaai.com/terms-textwidget.html")!)
+                    }
+                    .font(.caption)
+                    .padding(.bottom)
                 }
             }
-        }
-        .alert("购买失败", isPresented: .init(
-            get: { storeManager.purchaseError != nil },
-            set: { if !$0 { storeManager.purchaseError = nil } }
-        )) {
-            Button("确定", role: .cancel) { }
-        } message: {
-            if let error = storeManager.purchaseError {
-                Text(error)
-            }
+            .navigationBarItems(trailing: Button("关闭") {
+                dismiss()
+            })
         }
     }
     
+    // 会员卡片视图
     private func membershipCard(type: StoreManager.MembershipType, price: String, action: @escaping () -> Void) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
