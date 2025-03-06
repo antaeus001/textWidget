@@ -9,6 +9,8 @@ class StoreManager: ObservableObject {
     @Published private(set) var purchasingProduct: Product?
     @Published var purchaseError: String?
     @Published private(set) var isLoadingProducts = false
+    @Published var currentSubscription: MembershipType?
+    @Published var subscriptionExpirationDate: Date?
     
     private let productIds = [
         IAPProducts.monthlySubscription,
@@ -52,6 +54,7 @@ class StoreManager: ObservableObject {
     init() {
         Task {
             await loadProducts()
+            await checkSubscriptionStatus()
         }
     }
     
@@ -161,6 +164,26 @@ class StoreManager: ObservableObject {
             UserSettings.shared.isPremium = true
         } catch {
             purchaseError = "恢复购买失败：\(error.localizedDescription)"
+        }
+    }
+    
+    func checkSubscriptionStatus() async {
+        for await result in Transaction.currentEntitlements {
+            guard case .verified(let transaction) = result else {
+                continue
+            }
+            
+            if transaction.productID == IAPProducts.lifetimeSubscription {
+                DispatchQueue.main.async {
+                    self.currentSubscription = .lifetime
+                    self.subscriptionExpirationDate = nil
+                }
+            } else if transaction.productID == IAPProducts.monthlySubscription {
+                DispatchQueue.main.async {
+                    self.currentSubscription = .monthly
+                    self.subscriptionExpirationDate = transaction.expirationDate
+                }
+            }
         }
     }
 } 

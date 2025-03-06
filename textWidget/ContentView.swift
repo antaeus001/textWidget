@@ -583,6 +583,9 @@ struct PurchaseView: View {
     @Environment(\.dismiss) var dismiss
     @StateObject private var storeManager = StoreManager.shared
     let onPurchaseSuccess: () -> Void
+    @State private var isRestoring = false
+    @State private var showAlert = false
+    @State private var alertMessage = ""
     
     var body: some View {
         NavigationView {
@@ -655,31 +658,57 @@ struct PurchaseView: View {
                         .padding(.horizontal)
                     }
                     
-                    // 自动续订说明
-                    VStack(spacing: 10) {
-                        Text("订阅说明")
-                            .font(.headline)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                        
-                        Text("• 付款将在确认购买时从 iTunes 账户中扣除\n• 订阅会自动续订，除非在当前订阅期结束前至少24小时关闭自动续订\n• 账户将在当前订阅期结束前24小时内扣款续订\n• 用户可以在购买后前往 App Store 的账户设置管理订阅和关闭自动续订")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                    .padding(.horizontal)
-                    
-                    // 恢复购买按钮
-                    Button("恢复购买") {
+                    // 修改恢复购买按钮
+                    Button(action: {
+                        isRestoring = true
                         Task {
-                            await storeManager.restorePurchases()
-                            if UserSettings.shared.isPremium {
-                                onPurchaseSuccess()
-                                dismiss()
+                            do {
+                                try await storeManager.restorePurchases()
+                                if UserSettings.shared.isPremium {
+                                    alertMessage = "购买已恢复"
+                                    onPurchaseSuccess()
+                                    dismiss()
+                                } else {
+                                    alertMessage = "没有找到可恢复的购买"
+                                }
+                            } catch {
+                                alertMessage = "恢复购买失败：\(error.localizedDescription)"
+                            }
+                            isRestoring = false
+                            showAlert = true
+                        }
+                    }) {
+                        HStack {
+                            Text("恢复购买")
+                            if isRestoring {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle())
                             }
                         }
                     }
+                    .disabled(isRestoring)
                     .padding()
                     
-                    // 添加必要的链接
+                    // 订阅说明
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("订阅说明")
+                            .font(.headline)
+                            .padding(.bottom, 4)
+                        
+                        Text("• 月度会员：¥12.00/月，自动续期")
+                        Text("• 永久会员：¥68.00，一次性付款")
+                        Text("• 订阅会自动续订，除非在当前订阅期结束前至少24小时关闭自动续订")
+                        Text("• 账户将在当前订阅期结束前24小时内扣款续订")
+                        Text("• 可以随时在 App Store 的账户设置中管理或取消订阅")
+                    }
+                    .font(.footnote)
+                    .foregroundColor(.secondary)
+                    .padding()
+                    .background(Color.gray.opacity(0.1))
+                    .cornerRadius(10)
+                    .padding(.horizontal)
+                    
+                    // 隐私政策和使用条款链接
                     HStack {
                         Link("隐私政策", destination: URL(string: "https://www.huohuaai.com/privacy-textwidget.html")!)
                         Text("•")
@@ -692,6 +721,9 @@ struct PurchaseView: View {
             .navigationBarItems(trailing: Button("关闭") {
                 dismiss()
             })
+            .alert(alertMessage, isPresented: $showAlert) {
+                Button("确定", role: .cancel) { }
+            }
         }
     }
     
@@ -789,39 +821,97 @@ struct FlowLayout: Layout {
 // 修改 SettingsView 视图
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
     @State private var showingPrivacyPolicy = false
     @State private var showingTerms = false
     @State private var showingHelp = false
     @State private var showingMailView = false
     @State private var mailResult: Result<MFMailComposeResult, Error>? = nil
-    @State private var showingEmailAlert = false  // 添加提示状态
+    @StateObject private var storeManager = StoreManager.shared
+    @State private var showingPurchaseView = false  // 添加状态变量
     
     var body: some View {
         NavigationView {
             List {
+                // 会员信息部分
+                Section {
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            // 会员状态图标
+                            if UserSettings.shared.isPremium {
+                                Image(systemName: "checkmark.seal.fill")
+                                    .foregroundColor(.green)
+                                    .font(.title2)
+                            } else {
+                                Image(systemName: "crown.fill")
+                                    .foregroundColor(.orange)
+                                    .font(.title2)
+                            }
+                            
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(UserSettings.shared.isPremium ? "已激活会员" : "未激活会员")
+                                    .font(.headline)
+                                
+                                if UserSettings.shared.isPremium {
+                                    if storeManager.currentSubscription == .lifetime {
+                                        Text("永久会员")
+                                            .foregroundColor(.secondary)
+                                    } else if storeManager.currentSubscription == .monthly {
+                                        if let expirationDate = storeManager.subscriptionExpirationDate {
+                                            Text("月度会员 · 下次续费时间：\(expirationDate.formatted(date: .abbreviated, time: .omitted))")
+                                                .foregroundColor(.secondary)
+                                        }
+                                    }
+                                } else {
+                                    Text("剩余【AI生成轮播内容】免费次数：\(UserSettings.shared.remainingFreeGenerates)")
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                            
+                            Spacer()
+                            
+                            if !UserSettings.shared.isPremium {
+                                Button("升级") {
+                                    showingPurchaseView = true  // 显示购买页面
+                                }
+                                .buttonStyle(.bordered)
+                                .tint(.blue)
+                            }
+                        }
+                    }
+                    .padding(.vertical, 8)
+                }
+                
+                // 关于部分
                 Section(header: Text("关于")) {
                     HStack {
-                        // 使用应用的实际图标
-                        if let iconsDictionary = Bundle.main.infoDictionary?["CFBundleIcons"] as? [String: Any],
-                           let primaryIconsDictionary = iconsDictionary["CFBundlePrimaryIcon"] as? [String: Any],
-                           let iconFiles = primaryIconsDictionary["CFBundleIconFiles"] as? [String],
-                           let lastIcon = iconFiles.last {
-                            Image(uiImage: UIImage(named: lastIcon) ?? UIImage())
-                                .resizable()
-                                .aspectRatio(contentMode: .fit)
-                                .frame(width: 60, height: 60)
-                                .cornerRadius(12)
-                        } else {
-                            // 回退到系统图标
-                            Image(systemName: "text.bubble.fill")
-                                .resizable()
-                                .aspectRatio(contentMode: .fit)
-                                .frame(width: 60, height: 60)
-                                .foregroundColor(Color(red: 0.31, green: 0.54, blue: 0.38))
-                                .background(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .fill(Color(red: 0.31, green: 0.54, blue: 0.38).opacity(0.1))
-                                )
+                        // 尝试多种方式加载应用图标
+                        Group {
+                            if let image = UIImage(named: "AppIcon") {
+                                Image(uiImage: image)
+                                    .resizable()
+                                    .frame(width: 60, height: 60)
+                                    .cornerRadius(12)
+                            } else if let iconsDictionary = Bundle.main.infoDictionary?["CFBundleIcons"] as? [String: Any],
+                                      let primaryIconsDictionary = iconsDictionary["CFBundlePrimaryIcon"] as? [String: Any],
+                                      let iconFiles = primaryIconsDictionary["CFBundleIconFiles"] as? [String],
+                                      let lastIcon = iconFiles.last,
+                                      let iconImage = UIImage(named: lastIcon) {
+                                Image(uiImage: iconImage)
+                                    .resizable()
+                                    .frame(width: 60, height: 60)
+                                    .cornerRadius(12)
+                            } else {
+                                // 使用系统图标作为备用
+                                Image(systemName: "text.bubble.fill")
+                                    .resizable()
+                                    .frame(width: 60, height: 60)
+                                    .foregroundColor(Color(red: 0.31, green: 0.54, blue: 0.38))
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .fill(Color(red: 0.31, green: 0.54, blue: 0.38).opacity(0.1))
+                                    )
+                            }
                         }
                         
                         VStack(alignment: .leading) {
@@ -836,6 +926,7 @@ struct SettingsView: View {
                     .padding(.vertical, 8)
                 }
                 
+                // 帮助部分
                 Section(header: Text("帮助")) {
                     Button(action: {
                         showingHelp = true
@@ -849,6 +940,7 @@ struct SettingsView: View {
                     }
                 }
                 
+                // 法律部分
                 Section(header: Text("法律")) {
                     Button(action: {
                         showingPrivacyPolicy = true
@@ -865,7 +957,7 @@ struct SettingsView: View {
                         showingTerms = true
                     }) {
                         HStack {
-                            Text("用户协议")
+                            Text("使用条款")
                             Spacer()
                             Image(systemName: "chevron.right")
                                 .foregroundColor(.secondary)
@@ -873,25 +965,14 @@ struct SettingsView: View {
                     }
                 }
                 
+                // 联系我们部分
                 Section(header: Text("联系我们")) {
                     Button(action: {
-                        let email = "wushengwuxi01@163.com"
-                        let subject = "AI Widget Text 反馈"
-                        
-                        // 首先尝试使用内置邮件视图
                         if MFMailComposeViewController.canSendMail() {
                             showingMailView = true
-                        } else {
-                            // 如果内置邮件不可用，尝试打开邮件应用
-                            let mailtoString = "mailto:\(email)?subject=\(subject)".addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)
-                            if let mailtoUrl = URL(string: mailtoString ?? "") {
-                                if UIApplication.shared.canOpenURL(mailtoUrl) {
-                                    UIApplication.shared.open(mailtoUrl)
-                                } else {
-                                    // 如果邮件应用也不可用，复制邮箱地址到剪贴板
-                                    UIPasteboard.general.string = email
-                                    showingEmailAlert = true  // 显示提示
-                                }
+            } else {
+                            if let url = URL(string: "mailto:wushengwuxi01@163.com") {
+                                UIApplication.shared.open(url)
                             }
                         }
                     }) {
@@ -920,10 +1001,13 @@ struct SettingsView: View {
             .sheet(isPresented: $showingMailView) {
                 MailView(result: $mailResult, subject: "AI Widget Text 反馈", recipients: ["wushengwuxi01@163.com"], message: "")
             }
-            .alert("邮箱已复制", isPresented: $showingEmailAlert) {
-                Button("确定", role: .cancel) { }
-            } message: {
-                Text("邮箱地址已复制到剪贴板，您可以手动发送邮件。")
+            .sheet(isPresented: $showingPurchaseView) {
+                PurchaseView { 
+                    // 购买成功后的回调
+                    Task {
+                        await storeManager.checkSubscriptionStatus()
+                    }
+                }
             }
         }
     }
