@@ -115,7 +115,7 @@ struct TextWidgetEntryView : View {
             .font(.system(size: CGFloat(model.fontSize)))
             .foregroundColor(model.textColor)
             .multilineTextAlignment(model.alignment)
-            .padding()
+            .padding(EdgeInsets(top: 4, leading: 4, bottom: 4, trailing: 4))
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: model.alignment == .center ? .center : (model.alignment == .leading ? .leading : .trailing))
         
         // 使用 containerBackground 提供背景和边框
