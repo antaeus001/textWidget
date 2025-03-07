@@ -586,6 +586,9 @@ struct PurchaseView: View {
     @State private var isRestoring = false
     @State private var showAlert = false
     @State private var alertMessage = ""
+    @State private var showingSubscriptionAgreement = false
+    @State private var showingPrivacyPolicy = false
+    @State private var showingTerms = false
     
     var body: some View {
         NavigationView {
@@ -714,21 +717,66 @@ struct PurchaseView: View {
                     .cornerRadius(10)
                     .padding(.horizontal)
                     
-                    // 隐私政策和使用条款链接
-                    HStack {
-                        Link("隐私政策", destination: URL(string: "https://www.huohuaai.com/privacy-textwidget.html")!)
-                        Text("•")
-                        Link("使用条款", destination: URL(string: "https://www.huohuaai.com/terms-textwidget.html")!)
+                    // 会员协议和政策部分
+                    VStack(spacing: 10) {
+                        Text("购买即表示您同意以下条款:")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        
+                        HStack(spacing: 3) {
+                            Button(action: {
+                                showingSubscriptionAgreement = true
+                            }) {
+                                Text("《会员服务协议》")
+                                    .font(.caption)
+                                    .foregroundColor(.blue)
+                            }
+                            
+                            Text("、")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            
+                            Button(action: {
+                                showingTerms = true
+                            }) {
+                                Text("《用户协议》")
+                                    .font(.caption)
+                                    .foregroundColor(.blue)
+                            }
+                            
+                            Text("和")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            
+                            Button(action: {
+                                showingPrivacyPolicy = true
+                            }) {
+                                Text("《隐私政策》")
+                                    .font(.caption)
+                                    .foregroundColor(.blue)
+                            }
+                        }
                     }
-                    .font(.caption)
-                    .padding(.bottom)
+                    .padding(.top, 10)
+                    .padding(.bottom, 20)
                 }
+                .padding()
             }
+            .navigationTitle("会员服务")
             .navigationBarItems(trailing: Button("关闭") {
                 dismiss()
             })
             .alert(alertMessage, isPresented: $showAlert) {
                 Button("确定", role: .cancel) { }
+            }
+            .sheet(isPresented: $showingSubscriptionAgreement) {
+                SafariView(url: URL(string: "https://huohuaai.com/subscriptionAgreement.html")!)
+            }
+            .sheet(isPresented: $showingPrivacyPolicy) {
+                SafariView(url: URL(string: "https://www.huohuaai.com/privacy-textwidget.html")!)
+            }
+            .sheet(isPresented: $showingTerms) {
+                SafariView(url: URL(string: "https://www.huohuaai.com/terms-textwidget.html")!)
             }
         }
         .onAppear {
@@ -970,7 +1018,7 @@ struct SettingsView: View {
                         VStack(alignment: .leading) {
                             Text("AI Widget Text")
                                 .font(.headline)
-                            Text("版本 1.0.0")
+                            Text("版本 \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "未知")")
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                         }
